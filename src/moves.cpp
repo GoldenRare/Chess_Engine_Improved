@@ -8,6 +8,8 @@ Magic rookMagics[NUMBER_OF_SQUARES];
 Bitboard pawnAttacks[COLOURS][NUMBER_OF_SQUARES];
 Bitboard knightAttacks[NUMBER_OF_SQUARES];
 Bitboard kingAttacks[NUMBER_OF_SQUARES];
+Bitboard inBetween[NUMBER_OF_SQUARES][NUMBER_OF_SQUARES] = { };
+Bitboard rayLine[NUMBER_OF_SQUARES][NUMBER_OF_SQUARES]   = { };
 
 unsigned int Magic::index(Bitboard occupied) {
 
@@ -93,6 +95,7 @@ void initMoves() {
     initPawnAttacks();
     initKnightAttacks();
     initKingAttacks();
+    initInBetweenAndRayLine();
 
 }
 
@@ -154,5 +157,28 @@ void initKingAttacks() {
             }
         }
         kingAttacks[sq] = attacks;
+    }
+}
+
+void initInBetweenAndRayLine() {
+
+    for (Piece p = WHITE_BISHOP; p <= WHITE_ROOK; p++) {
+        for (Square sq1 = H1; sq1 <= A8; sq1++) {
+            for (Square sq2 = H1; sq2 <= A8; sq2++) {
+
+               Bitboard sq1BB = squareToBitboard(sq1);
+               Bitboard sq2BB = squareToBitboard(sq2);
+
+               Bitboard inBetweenAttacksSq1 = (p == WHITE_BISHOP) ? bishopAttacks(sq2BB, sq1) : rookAttacks(sq2BB, sq1);
+               Bitboard inBetweenAttacksSq2 = (p == WHITE_BISHOP) ? bishopAttacks(sq1BB, sq2) : rookAttacks(sq1BB, sq2);
+               Bitboard rayLineAttacksSq1   = (p == WHITE_BISHOP) ? bishopAttacks(0    , sq1) : rookAttacks(0    , sq1);
+               Bitboard rayLineAttacksSq2   = (p == WHITE_BISHOP) ? bishopAttacks(0    , sq2) : rookAttacks(0    , sq2);
+
+               if ((inBetweenAttacksSq1 & sq2BB) != 0) {
+                   inBetween[sq1][sq2] = (inBetweenAttacksSq1 & inBetweenAttacksSq2);
+                   rayLine  [sq1][sq2] = (rayLineAttacksSq1   & rayLineAttacksSq2  ) | sq1BB | sq2BB;
+               }
+            }
+        }
     }
 }

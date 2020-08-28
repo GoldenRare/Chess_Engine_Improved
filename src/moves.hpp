@@ -19,6 +19,8 @@ constexpr Direction KNIGHT_MOVEMENT[NUMBER_OF_KNIGHT_DIRECTIONS]          = {NOR
 extern Bitboard pawnAttacks[COLOURS][NUMBER_OF_SQUARES]; //Where a pawn can attack based on color and square
 extern Bitboard knightAttacks[NUMBER_OF_SQUARES];
 extern Bitboard kingAttacks[NUMBER_OF_SQUARES];
+extern Bitboard inBetween[NUMBER_OF_SQUARES][NUMBER_OF_SQUARES];
+extern Bitboard rayLine[NUMBER_OF_SQUARES][NUMBER_OF_SQUARES];
 
 struct Magic {
 
@@ -44,6 +46,7 @@ void initMagics();
 void initPawnAttacks();
 void initKnightAttacks();
 void initKingAttacks();
+void initInBetweenAndRayLine();
 
 //Returns a bitboard of pawns able to push up one (dependent on side)
 inline Bitboard pawnsAbleToPush(Bitboard pawns, Bitboard emptySquares, Color c) {
@@ -61,6 +64,18 @@ inline Bitboard pawnsAbleToPushTwice(Bitboard pawns, Bitboard emptySquares, Colo
                                        : ((RANK_5_BB & emptySquares) <<  NORTH) & emptySquares;
 
     return pawnsAbleToPush(pawns, emptyRankInFrontOfPawn, c);
+}
+
+//Returns a bitboard of all the pawn attacks (dependent on side)
+inline Bitboard allPawnAttacks(Bitboard pawns, Color c) {
+    return (c == WHITE) ? (pawns & ~FILE_H_BB) <<  NORTH_EAST | (pawns & ~FILE_A_BB) <<  NORTH_WEST
+                        : (pawns & ~FILE_H_BB) >> -SOUTH_EAST | (pawns & ~FILE_A_BB) >> -SOUTH_WEST;
+}
+
+//Returns a bitboard of which squares are attacked twice by pawns (dependent on side)
+inline Bitboard attackedTwiceByPawns(Bitboard pawns, Color c) {
+    return (c == WHITE) ? (pawns & ~FILE_H_BB) <<  NORTH_EAST & (pawns & ~FILE_A_BB) <<  NORTH_WEST
+                        : (pawns & ~FILE_H_BB) >> -SOUTH_EAST & (pawns & ~FILE_A_BB) >> -SOUTH_WEST;
 }
 
 #endif

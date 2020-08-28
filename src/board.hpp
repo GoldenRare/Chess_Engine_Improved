@@ -34,6 +34,7 @@ class ChessBoard {
        bool isSquareAttacked(Square sq, Color attacked) const; //Returns if a square is attacked by a certain color
        void makeMove(const Move& move);
        void undoMove();
+       Bitboard blockers(Square sq, Bitboard sliders) const; //Returns a bitboard of pieces that are blocking a square from being attacked 
 
     private:
 

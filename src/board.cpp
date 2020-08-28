@@ -446,6 +446,33 @@ void ChessBoard::undoMove() {
     }
 }
 
+Bitboard ChessBoard::blockers(Square sq, Bitboard sliders) const{
+
+    Bitboard blockers = 0;
+    Bitboard bishops  = pieces[WHITE_BISHOP] | pieces[BLACK_BISHOP];
+    Bitboard rooks    = pieces[WHITE_ROOK]   | pieces[BLACK_ROOK];
+    Bitboard queens   = pieces[WHITE_QUEEN]  | pieces[BLACK_QUEEN];
+
+    Bitboard occupied;
+    Bitboard occupiedInBetween;
+    Square sliderSq;
+
+    sliders  = ((bishopAttacks(0, sq) & (bishops | queens)) | (rookAttacks(0, sq) & (rooks | queens))) & sliders;
+    occupied = gameBoard ^ sliders;
+
+    while (sliders > 0) {
+
+        sliderSq = squareOfLS1B(&sliders);
+        occupiedInBetween = inBetween[sq][sliderSq] & occupied;
+
+        // sq is blocked only if there is exactly 1 piece in between the attacking sliding piece and the sq
+        if ((occupiedInBetween > 0) && (occupiedInBetween & (occupiedInBetween - 1) == 0))
+            blockers |= occupiedInBetween;
+    }
+
+    return blockers;
+}
+
 void ChessBoard::parseFEN(std::string fen) {
 
     int i = 0;

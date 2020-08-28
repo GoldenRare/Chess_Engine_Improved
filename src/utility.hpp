@@ -6,6 +6,8 @@
 typedef uint64_t Bitboard;
 typedef uint64_t PositionKey;
 
+enum PieceType { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, ALL_PIECE_TYPES, PIECE_TYPES };
+
 enum Piece {
 
     WHITE_PAWN, WHITE_KNIGHT, WHITE_BISHOP, WHITE_ROOK, WHITE_QUEEN, WHITE_KING,
@@ -104,8 +106,10 @@ constexpr Bitboard FILE_A_BB = FILE_H_BB << (7 * WEST);
 
 constexpr Bitboard RANK_1_BB = 0x00000000000000FF;
 constexpr Bitboard RANK_2_BB = RANK_1_BB << (1 * NORTH);
+constexpr Bitboard RANK_3_BB = RANK_1_BB << (2 * NORTH);
 constexpr Bitboard RANK_4_BB = RANK_1_BB << (3 * NORTH);
 constexpr Bitboard RANK_5_BB = RANK_1_BB << (4 * NORTH);
+constexpr Bitboard RANK_6_BB = RANK_1_BB << (5 * NORTH);
 constexpr Bitboard RANK_7_BB = RANK_1_BB << (6 * NORTH);
 constexpr Bitboard RANK_8_BB = RANK_1_BB << (7 * NORTH);
 

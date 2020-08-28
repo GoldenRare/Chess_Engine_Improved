@@ -72,7 +72,7 @@ void divide(ChessBoard& board, int depth) {
 
 ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth) {
 
-    if (depth == 0) 
+    if (depth <= 0) 
         return quiescenceSearch(board, alpha, beta);
 
     ///////////////// Transposition Table ///////////////////
@@ -112,6 +112,7 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth) {
     int legalMoves = 0;
     int bestEvaluation = -INFINITE;
     int bestMove;
+    bool foundBestMove = false;
     assignMoveScores(movesListStart, movesListEnd, board);
     findBestMove(movesListStart, movesListEnd, hashMove);
     while (movesListStart < movesListEnd) {
@@ -128,11 +129,21 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth) {
 
         }
         legalMoves++;
-        evaluation = -alphaBeta(board, -beta, -alpha, depth - 1);
+
+        ///////////// Principal Variation Search ///////////////////
+        if (foundBestMove) {
+
+            evaluation = -alphaBeta(board, -alpha - 1, -alpha, depth - 1); //Search with null window
+            if ((evaluation > alpha) && (evaluation < beta)) //Failed High (Must re-search)
+                evaluation = -alphaBeta(board, -beta, -alpha, depth - 1);
+
+        } else evaluation = -alphaBeta(board, -beta, -alpha, depth - 1);
+        ////////////////////////////////////////////////////////////
+
         board.undoMove();
 
         if (evaluation >= beta) {
-            pe->savePositionEvaluation(board.positionKey, movesListStart->move, depth, LOWER_BOUND, evaluation);
+            pe->savePositionEvaluation(board.positionKey, movesListStart->move, depth, LOWER_BOUND, beta);
 
             ///////////// Save Killers /////////////////
             if (isQuietMove(*movesListStart)) {
@@ -149,6 +160,8 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth) {
         if (evaluation > bestEvaluation) {
             bestMove = movesListStart->move;
             bestEvaluation = evaluation;
+
+            if(bestEvaluation > alpha) foundBestMove = true;
         }
         movesListStart++;
         findBestMove(movesListStart, movesListEnd, hashMove);
@@ -235,7 +248,8 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta) {
     ////////////Stand-Pat if not in check////////////////////////////
     if (!board.isSquareAttacked(board.pieceSquare[king][0], kingInCheck)) {
 
-        ExactScore standPat = evaluatePosition(board);
+        Evaluation evaluation(board);
+        ExactScore standPat = evaluation.evaluatePosition();
         if (standPat >= beta) return beta;
         if (standPat > alpha) alpha = standPat;
         movesListEnd = generateAllPseudoCaptureMoves(board, movesListStart);
@@ -249,6 +263,7 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta) {
     int evaluation = 0;
     int legalMoves = 0;
     unsigned int temp = 0;
+    bool foundBestMove = false;
 
     assignMoveScores(movesListStart, movesListEnd, board);
     findBestMove(movesListStart, movesListEnd, temp);
@@ -267,7 +282,17 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta) {
         }
         legalMoves++;
 
-        evaluation = -quiescenceSearch(board, -beta, -alpha);
+        ///////////// Principal Variation Search ///////////////////
+        if (foundBestMove) {
+
+            evaluation = -quiescenceSearch(board, -alpha - 1, -alpha); //Search with null window
+            if ((evaluation > alpha) && (evaluation < beta)) //Failed High (Must re-search)
+                evaluation = -quiescenceSearch(board, -beta, -alpha);
+
+        } else evaluation = -quiescenceSearch(board, -beta, -alpha);
+        ////////////////////////////////////////////////////////////
+
+        //evaluation = -quiescenceSearch(board, -beta, -alpha);
         board.undoMove();
 
         if (evaluation >= beta) {
@@ -285,7 +310,10 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta) {
 
             return beta;
         }
-        if (evaluation > alpha) alpha = evaluation;
+        if (evaluation > alpha) {
+            alpha = evaluation;
+            foundBestMove = true;
+        }
         movesListStart++;
         findBestMove(movesListStart, movesListEnd, temp);
     }

@@ -35,8 +35,8 @@ enum PieceValue {
 
 };
 
-int gamePhase(const ChessBoard& board);
-ExactScore evaluatePosition(const ChessBoard& board);
+constexpr int MAX_QUEEN_MOVEMENTS = 27;
+
 CombinedScore evaluatePieceSquareScore(const ChessBoard& board);
 CombinedScore evaluatePieceSquareScoreHelper(const ChessBoard& board, int numberOfPieces, Piece piece);
 
@@ -132,7 +132,57 @@ constexpr CombinedScore PAWN_SQUARE_BONUS[RANKS][FILES] =
     { }
 };
 
+constexpr CombinedScore MOBILITY_BONUS[ALL_PIECE_TYPES - 2][MAX_QUEEN_MOVEMENTS + 1] =
+{
+    { // Knight mobility bonus
+        makeScore(-62,-81), makeScore(-53,-56), makeScore(-12,-30), makeScore( -4,-14), makeScore(  3,  8), makeScore( 13, 15), makeScore( 22, 23), 
+        makeScore( 28, 27), makeScore( 33, 33)
+    },
+    { // Bishop mobility bonus
+        makeScore(-48,-59), makeScore(-20,-23), makeScore( 16, -3), makeScore( 26, 13), makeScore( 38, 24), makeScore( 51, 42), makeScore( 55, 54), 
+        makeScore( 63, 57), makeScore( 63, 65), makeScore( 68, 73), makeScore( 81, 78), makeScore( 81, 86), makeScore( 91, 88), makeScore( 98, 97)
+    }, 
+    { // Rook mobility bonus
+        makeScore(-58,-76), makeScore(-27,-18), makeScore(-15, 28), makeScore(-10, 55), makeScore( -5, 69), makeScore( -2, 82), makeScore(  9,112), 
+        makeScore( 16,118), makeScore( 30,132), makeScore( 29,142), makeScore( 32,155), makeScore( 38,165), makeScore( 46,166), makeScore( 48,169), 
+        makeScore( 58,171)
+    }, 
+    { // Queen mobility bonus
+        makeScore(-39,-36), makeScore(-21,-15), makeScore(  3,  8), makeScore(  3, 18), makeScore( 14, 34), makeScore( 22, 54), makeScore( 28, 61), 
+        makeScore( 41, 73), makeScore( 43, 79), makeScore( 48, 92), makeScore( 56, 94), makeScore( 60,104), makeScore( 60,113), makeScore( 66,120), 
+        makeScore( 67,123), makeScore( 70,126), makeScore( 71,133), makeScore( 73,136), makeScore( 79,140), makeScore( 88,143), makeScore( 88,148), 
+        makeScore( 99,166), makeScore(102,170), makeScore(102,175), makeScore(106,184), makeScore(109,191), makeScore(113,206), makeScore(116,212)
+    }
+};
+
 void initPieceSquareTable();
 void initEvaluation();
+
+class Evaluation {
+
+    public:
+
+        Evaluation(const ChessBoard& b);
+        ExactScore evaluatePosition();
+
+    private:
+
+        // Board of the Evaluation we are evaluating
+        const ChessBoard& board;
+
+        // All the attacks by a Color and a PieceType
+        Bitboard attacksBy[COLOURS][PIECE_TYPES];
+
+        // All the attacks where the square is hit twice indexed by Colour
+        Bitboard attacksBy2[COLOURS];
+
+        // Safe squares
+        Bitboard mobilityArea[COLOURS];
+
+        void initEvaluation();
+        CombinedScore evaluatePiece(PieceType pt, Color c);
+        int gamePhase();
+
+};
 
 #endif
