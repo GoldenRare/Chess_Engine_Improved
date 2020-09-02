@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdlib>
+#include <algorithm>
 #include "board.hpp"
 #include "utility.hpp"
 #include "moves.hpp"
@@ -34,6 +35,8 @@ void ChessBoard::makeMove(const Move& move) {
     state.capturedPiece = NO_PIECE;
     state.enPassantSquare = enPassant;
     state.castlingRights = castlingRights;
+    state.halfmoves = halfmoves;
+    state.key = positionKey;
     //////////////////////////////////////////////////
 
     Direction pawnPush;
@@ -66,7 +69,10 @@ void ChessBoard::makeMove(const Move& move) {
         emptySquares ^= fromToBB;
         pieceSquare[fromPiece][findPieceSquareIndex(fromPiece, static_cast<Square>(fromSquare))] = static_cast<Square>(toSquare);
         pieceBoard[toSquare] = fromPiece;
-        positionKey ^= zobristPieceSquare[fromPiece][fromSquare] ^ zobristPieceSquare[fromPiece][toSquare];        
+        positionKey ^= zobristPieceSquare[fromPiece][fromSquare] ^ zobristPieceSquare[fromPiece][toSquare];
+
+        if ((fromPiece == WHITE_PAWN) || (fromPiece == BLACK_PAWN)) halfmoves = 0;
+        else halfmoves++;        
 
         Piece fromRook;
         Bitboard fromRookBB, toRookBB, fromToRookBB;
@@ -127,7 +133,8 @@ void ChessBoard::makeMove(const Move& move) {
         pieceSquare[toPiece][findPieceSquareIndex(toPiece, static_cast<Square>(toSquare))] = pieceSquare[toPiece][pieceCount[toPiece] - 1];
         pieceCount[toPiece]--;
         pieceBoard[toSquare] = fromPiece;
-        positionKey ^= zobristPieceSquare[fromPiece][fromSquare] ^ zobristPieceSquare[fromPiece][toSquare] ^ zobristPieceSquare[toPiece][toSquare]; 
+        positionKey ^= zobristPieceSquare[fromPiece][fromSquare] ^ zobristPieceSquare[fromPiece][toSquare] ^ zobristPieceSquare[toPiece][toSquare];
+        halfmoves = 0; 
 
     } else if (moveType == EN_PASSANT_CAPTURE) {
 
@@ -154,7 +161,8 @@ void ChessBoard::makeMove(const Move& move) {
         pieceSquare[toPiece][findPieceSquareIndex(toPiece, static_cast<Square>(toSquare - pawnPush))] = pieceSquare[toPiece][pieceCount[toPiece] - 1];
         pieceCount[toPiece]--;
         pieceBoard[toSquare] = fromPiece;
-        positionKey ^= zobristPieceSquare[fromPiece][fromSquare] ^ zobristPieceSquare[fromPiece][toSquare] ^ zobristPieceSquare[toPiece][toSquare - pawnPush]; 
+        positionKey ^= zobristPieceSquare[fromPiece][fromSquare] ^ zobristPieceSquare[fromPiece][toSquare] ^ zobristPieceSquare[toPiece][toSquare - pawnPush];
+        halfmoves = 0; 
 
     } else if ((moveType == KNIGHT_PROMOTION) || (moveType == BISHOP_PROMOTION) 
         || (moveType == ROOK_PROMOTION) || (moveType == QUEEN_PROMOTION)) {
@@ -188,6 +196,7 @@ void ChessBoard::makeMove(const Move& move) {
         
         pieceBoard[toSquare] = promotionPiece;
         positionKey ^= zobristPieceSquare[fromPiece][fromSquare] ^ zobristPieceSquare[promotionPiece][toSquare];
+        halfmoves = 0;
 
     } else if ((moveType == KNIGHT_PROMOTION_CAPTURE) || (moveType == BISHOP_PROMOTION_CAPTURE) 
         || (moveType == ROOK_PROMOTION_CAPTURE) || (moveType == QUEEN_PROMOTION_CAPTURE)) {
@@ -231,6 +240,7 @@ void ChessBoard::makeMove(const Move& move) {
         
         pieceBoard[toSquare] = promotionPiece;
         positionKey ^= zobristPieceSquare[fromPiece][fromSquare] ^ zobristPieceSquare[toPiece][toSquare] ^ zobristPieceSquare[promotionPiece][toSquare];
+        halfmoves = 0;
 
     }
 
@@ -263,6 +273,7 @@ void ChessBoard::undoMove() {
     Move move = state.move;
     enPassant = state.enPassantSquare;
     castlingRights = state.castlingRights;
+    halfmoves = state.halfmoves;
     sideToPlay = ~sideToPlay;
 
     //Restore enPassant square, castlingRights
@@ -475,6 +486,8 @@ Bitboard ChessBoard::blockers(Square sq, Bitboard sliders) const{
 
 void ChessBoard::parseFEN(std::string fen) {
 
+    clearBoard();
+
     int i = 0;
     for (Bitboard init = squareToBitboard(A8); init > 0; init >>= 1) {
         piecePlacement(&init, fen[i]);
@@ -667,6 +680,25 @@ int ChessBoard::findPieceSquareIndex(Piece p, Square sq) {
     }
 
     return -1;
+}
+
+void ChessBoard::clearBoard() {
+
+    positionKey = 0;
+    std::fill(pieceBoard, pieceBoard + NUMBER_OF_SQUARES, NO_PIECE);
+    std::fill(pieces, pieces + NUMBER_OF_PIECES, 0);
+    std::fill(piecesOnSide, piecesOnSide + COLOURS, 0);
+    gameBoard = 0; 
+    emptySquares = 0;
+    std::fill(pieceCount, pieceCount + PIECES, 0);
+    std::fill(pieceSquare[0], pieceSquare[0] + (PIECES * 10), NO_SQUARE);
+    sideToPlay = WHITE;
+    enPassant = NO_SQUARE;
+    castlingRights = 0;
+    ply = 0; 
+    halfmoves = 0;
+    //std::fill(previousGameStates, previousGameStates + 256, 0);
+    previousGameStatesCount = 0;
 }
 
 void printBitboard(Bitboard b) {

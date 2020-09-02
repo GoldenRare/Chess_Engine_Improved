@@ -78,4 +78,20 @@ inline Bitboard attackedTwiceByPawns(Bitboard pawns, Color c) {
                         : (pawns & ~FILE_H_BB) >> -SOUTH_EAST & (pawns & ~FILE_A_BB) >> -SOUTH_WEST;
 }
 
+//Returns a bitboard of all squares in front of the pawns, including the square of the pawn itself (dependent on sides)
+Bitboard pawnFrontFill(Bitboard pawns, Color c);
+
+//Returns a bitboard of all squares in front of the pawns, excluding the square of the pawn itself (dependent on sides)
+inline Bitboard pawnFrontSpans(Bitboard pawns, Color c) {
+    return (c == WHITE) ? pawnFrontFill(pawns, c) <<   NORTH
+                        : pawnFrontFill(pawns, c) >> (-SOUTH);
+}
+
+inline Bitboard pawnAttackSpans(Bitboard pawns, Color c) {
+    Bitboard frontSpan = pawnFrontSpans(pawns, c);
+    return ((frontSpan & ~FILE_H_BB) >> (-EAST)) | ((frontSpan & ~FILE_A_BB) << WEST);
+}
+
+
+
 #endif

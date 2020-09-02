@@ -7,10 +7,11 @@
 #include "search.hpp"
 #include "evaluation.hpp"
 #include "zobrist.hpp"
+#include "uci.hpp"
 
 #include "transpositionTable.hpp"
 #include "randomNumber.hpp"
-#include "bitset"
+#include <algorithm>
 
 //Consider how to deal with Search Explosion in QSearch();
 //Should be using pass by reference for Move (in utility.hpp)
@@ -23,16 +24,12 @@ int main() {
     initMoves();
     initEvaluation();
     initZobrist();
+    //commandsLoop();
     
+
     //q2k2q1/2nqn2b/1n1P1n1b/2rnr2Q/1NQ1QN1Q/3Q3B/2RQR2B/Q2K2Q1 w - - 0 1
-    ChessBoard board("8/5K2/p6k/P5R1/6P1/8/2P5/8 w - - 9 66");
-    //printBitboard(inBetween[A1][A8]);
-    //printBitboard(inBetween[F3][F7]); 
-    //printBitboard(inBetween[H1][A8]); 
-    //printBitboard(inBetween[G4][D7]);
-    //printBitboard(inBetween[E4][C4]); 
-    //printBitboard(inBetween[A1][G8]);  
-    iterativeDeepening(board, 11);
+    ChessBoard board("q2k2q1/2nqn2b/1n1P1n1b/2rnr2Q/1NQ1QN1Q/3Q3B/2RQR2B/Q2K2Q1 w - - 0 1");  
+    iterativeDeepening(board, 1);
 
 
 /*

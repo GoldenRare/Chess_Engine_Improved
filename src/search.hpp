@@ -10,5 +10,6 @@ void divide(ChessBoard& board, int depth);
 ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth);
 void iterativeDeepening(ChessBoard& board, int maxDepth);
 ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta);
+bool isRepetition(ChessBoard& board);
 
 #endif

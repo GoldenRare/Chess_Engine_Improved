@@ -182,3 +182,16 @@ void initInBetweenAndRayLine() {
         }
     }
 }
+
+Bitboard pawnFrontFill(Bitboard pawns, Color c) {
+    if (c == WHITE) {
+        pawns |= (pawns <<      NORTH);
+        pawns |= (pawns << (2 * NORTH));
+        pawns |= (pawns << (4 * NORTH));
+    } else {
+        pawns |= (pawns >>      (-SOUTH));
+        pawns |= (pawns >> (2 * (-SOUTH)));
+        pawns |= (pawns >> (4 * (-SOUTH)));
+    }
+    return pawns;
+}

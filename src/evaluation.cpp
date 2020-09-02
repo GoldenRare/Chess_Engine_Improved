@@ -134,11 +134,29 @@ CombinedScore Evaluation::evaluatePiece(PieceType pt, Color c) {
         if (kingBlockers & sq)
             attacks &= rayLine[kingSq][sq];
 
+        attacksBy2[c] |= (attacksBy[c][ALL_PIECE_TYPES] & attacks);
+        attacksBy[c][pt] |= attacks;
+        attacksBy[c][ALL_PIECE_TYPES] |= attacks;
+
         //TODO//
-        cs += MOBILITY_BONUS[pt][populationCount(attacks & mobilityArea[c])];
         ////////
 
+        cs += MOBILITY_BONUS[pt][populationCount(attacks & mobilityArea[c])]; //////////
 
+        if ((pt == KNIGHT) || (pt == BISHOP)) {
+            
+            Bitboard sqBB = squareToBitboard(sq);
+            Bitboard outposts = attacksBy[c][PAWN] & (c == WHITE) ? whiteOutpostRanks & (~pawnAttackSpans(board.pieces[BLACK_PAWN], BLACK))
+                                                                  : blackOutpostRanks & (~pawnAttackSpans(board.pieces[WHITE_PAWN], WHITE));
+
+            if ((outposts & sqBB) > 0) cs += (OUTPOST_BONUS * (pt == KNIGHT) ? 2 : 1);
+            else if ((pt == KNIGHT) && ((outposts & attacks & (~board.piecesOnSide[c])) > 0)) cs += REACHABLE_OUTPOST_BONUS;
+
+            //Uses pawnsAbleToPush as a hack for detecting minor pieces behind pawns
+            if (pawnsAbleToPush(sqBB, board.pieces[WHITE_PAWN] | board.pieces[BLACK_PAWN], c) > 0) cs += MINOR_PIECE_BEHIND_PAWN_BONUS;
+
+            cs -= (KING_PROTECTOR_PENALTY * ChebyshevDistance[sq][kingSq]); 
+        }
     }
 
     return cs;

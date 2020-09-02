@@ -2,6 +2,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <algorithm>
+#include <string>
 #include "search.hpp"
 #include "utility.hpp"
 #include "board.hpp"
@@ -72,6 +73,10 @@ void divide(ChessBoard& board, int depth) {
 
 ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth) {
 
+    ////////// Check For Repetition/50-Move rule ////////////
+    if (isRepetition(board) || board.halfmoves >= 100) return 0;
+    /////////////////////////////////////////////////////////
+    
     if (depth <= 0) 
         return quiescenceSearch(board, alpha, beta);
 
@@ -222,9 +227,23 @@ void iterativeDeepening(ChessBoard& board, int maxDepth) {
 
     bool hasEvaluation = false;
     PositionEvaluation* pe = TT.probeTT(board.positionKey, hasEvaluation);
+    std::string promotion = "";
     Move bestMoveInfo;
+    MoveType moveType;
     bestMoveInfo.move = pe->move;
-    std::cout << "Score: " << pe->evaluation << ". Move: " << NOTATION[getFrom(bestMoveInfo)] << " " << NOTATION[getTo(bestMoveInfo)] << std::endl;
+    ////////////////////////////////////
+    moveType = typeOfMove(bestMoveInfo);
+
+    if      ((moveType == KNIGHT_PROMOTION) || (moveType == KNIGHT_PROMOTION_CAPTURE)) promotion = "n";
+    else if ((moveType == BISHOP_PROMOTION) || (moveType == BISHOP_PROMOTION_CAPTURE)) promotion = "b";
+    else if ((moveType == ROOK_PROMOTION  ) || (moveType == ROOK_PROMOTION_CAPTURE  )) promotion = "r";
+    else if ((moveType == QUEEN_PROMOTION ) || (moveType == QUEEN_PROMOTION_CAPTURE )) promotion = "q";
+    ///////////////////////////////////////
+    std::cout << "bestmove " << NOTATION[getFrom(bestMoveInfo)] << NOTATION[getTo(bestMoveInfo)];
+    if (promotion != "") std::cout << promotion << std::endl;
+    else std::cout << std::endl;
+    ////////////////////////////////////////
+
     auto t2 = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::seconds>(t2 - t1).count();
     std::cout << duration << std::endl;
@@ -244,6 +263,11 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta) {
     Move* movesListStart = movesList;
     Move* movesListEnd;
     bool generatedAllMoves = false;
+
+    ////////// Check For Repetition/50-Move rule ////////////
+    if (isRepetition(board) || board.halfmoves >= 100) return 0;
+    /////////////////////////////////////////////////////////
+    
     /* SEARCH EXPLOSION BECAUSE OF GENERATING ALL MOVES WHEN NOT IN CHECK */
     ////////////Stand-Pat if not in check////////////////////////////
     if (!board.isSquareAttacked(board.pieceSquare[king][0], kingInCheck)) {
@@ -324,4 +348,16 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta) {
         else alpha = STALEMATE_SCORE;
     }
     return alpha;
+}
+
+bool isRepetition(ChessBoard& board) {
+
+    if (board.halfmoves < 4) return false;
+
+    //int currentPosition = board.previousGameStatesCount - 1;
+    int howFarBack = board.previousGameStatesCount - board.halfmoves;
+    for (int i = board.previousGameStatesCount - 4; (i >= 0) && (i >= howFarBack); i -= 2) 
+        if (board.positionKey == board.previousGameStates[i].key) return true;
+
+    return false;
 }

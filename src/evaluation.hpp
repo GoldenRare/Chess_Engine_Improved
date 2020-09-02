@@ -35,6 +35,9 @@ enum PieceValue {
 
 };
 
+constexpr Bitboard whiteOutpostRanks = RANK_4_BB | RANK_5_BB | RANK_6_BB;
+constexpr Bitboard blackOutpostRanks = RANK_5_BB | RANK_4_BB | RANK_3_BB;
+
 constexpr int MAX_QUEEN_MOVEMENTS = 27;
 
 CombinedScore evaluatePieceSquareScore(const ChessBoard& board);
@@ -62,6 +65,11 @@ constexpr ExactScore PIECE_VALUE[PHASES][PIECES] =
     { PAWN_VALUE_ENDGAME   , KNIGHT_VALUE_ENDGAME   , BISHOP_VALUE_ENDGAME   , ROOK_VALUE_ENDGAME   , QUEEN_VALUE_ENDGAME   , 0,
       PAWN_VALUE_ENDGAME   , KNIGHT_VALUE_ENDGAME   , BISHOP_VALUE_ENDGAME   , ROOK_VALUE_ENDGAME   , QUEEN_VALUE_ENDGAME   , 0 }
 };  
+
+constexpr CombinedScore OUTPOST_BONUS                 = makeScore(30, 21);
+constexpr CombinedScore REACHABLE_OUTPOST_BONUS       = makeScore(32, 10);
+constexpr CombinedScore MINOR_PIECE_BEHIND_PAWN_BONUS = makeScore(18,  3);
+constexpr CombinedScore KING_PROTECTOR_PENALTY        = makeScore( 7,  8);
 
 constexpr CombinedScore PIECE_SQUARE_BONUS[PIECES / 2][RANKS][FILES / 2] = 
 {
