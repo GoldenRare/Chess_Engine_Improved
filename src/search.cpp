@@ -71,7 +71,9 @@ void divide(ChessBoard& board, int depth) {
     std::cout << "Total: " << total;
 }
 
-ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth) {
+ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isPVNode, int ply) {
+
+    const bool isRootNode = board.ply == ply;
 
     ////////// Check For Repetition/50-Move rule ////////////
     if (isRepetition(board) || board.halfmoves >= 100) return 0;
@@ -80,24 +82,43 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth) {
     if (depth <= 0) 
         return quiescenceSearch(board, alpha, beta);
 
+    //////////////// Mate Distance Pruning //////////////////
+    ExactScore assumeCheckmate = CHECKMATE - board.ply;
+    if (assumeCheckmate < beta) {
+        beta = assumeCheckmate;
+        if (alpha >= assumeCheckmate) return assumeCheckmate;
+    }
+
+    ExactScore assumeCheckmated = -CHECKMATE + board.ply;
+    if (assumeCheckmated > alpha) {
+        alpha = assumeCheckmated;
+        if (beta <= assumeCheckmated) return assumeCheckmated;
+    }
+    /////////////////////////////////////////////////////////
+
     ///////////////// Transposition Table ///////////////////
     bool hasEvaluation;
     PositionEvaluation* pe = TT.probeTT(board.positionKey, hasEvaluation);
     unsigned int hashMove = 0;
+    ExactScore nodeScoreTT = NO_VALUE;
+    bool isPVNodeTT = isPVNode;
 
     if (hasEvaluation) {
 
         if (depth <= pe->depth) {
 
+            ExactScore temp = adjustNodeScoreFromTT(pe->nodeScore, board.ply);
             if (pe->getBound() == EXACT_BOUND) 
-                return (pe->evaluation == -MATE_SCORE) ? -MATE_SCORE + board.ply : pe->evaluation;
-            else if ((pe->getBound() == LOWER_BOUND) && pe->evaluation > alpha) alpha = pe->evaluation;
-            else if ((pe->getBound() == UPPER_BOUND) && pe->evaluation < beta ) beta  = pe->evaluation; 
+                return temp;
+            else if ((pe->getBound() == LOWER_BOUND) && temp > alpha) alpha = temp;
+            else if ((pe->getBound() == UPPER_BOUND) && temp < beta ) beta  = temp; 
 
             if (alpha >= beta) return beta;
 
-        } 
-        hashMove = pe->move;
+        }
+        isPVNodeTT = pe->isPVNode() ? pe->isPVNode() : isPVNodeTT;
+        nodeScoreTT = adjustNodeScoreFromTT(pe->nodeScore, board.ply); 
+        hashMove = (pe->move == NO_MOVE) ? 0 : pe->move;
     }
     //////////////////////////////////////////////////////////
 
@@ -106,18 +127,57 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth) {
     killerMoves[board.ply + 1][1] = 0;
     //////////////////////////////////////////////////////////
 
+    Color kingInCheck = board.sideToPlay;
+    Piece king        = (kingInCheck == WHITE) ? WHITE_KING : BLACK_KING;
+    ExactScore staticEvaluation, staticEvaluationAdjusted;
+    ///////////////// Static Evaluation //////////////////////
+    if (board.isSquareAttacked(board.pieceSquare[king][0], kingInCheck)) 
+        staticEvaluationAdjusted = staticEvaluation = NO_VALUE;
+        
+    else if (hasEvaluation) {
+
+        staticEvaluationAdjusted = staticEvaluation = pe->staticEvaluation;
+        if (staticEvaluation == NO_VALUE) {
+            Evaluation eval(board);
+            staticEvaluationAdjusted = staticEvaluation = eval.evaluatePosition();
+        }
+
+        // nodeScoreTT can potentially be used as better score than the actual static evaluation
+        if ((nodeScoreTT != NO_VALUE) && (pe->getBound() & (nodeScoreTT > staticEvaluation ? LOWER_BOUND : UPPER_BOUND) > 0))
+            staticEvaluationAdjusted = nodeScoreTT;
+
+    } else {
+
+        Evaluation eval(board);
+        staticEvaluationAdjusted = staticEvaluation = eval.evaluatePosition();
+        pe->savePositionEvaluation(board.positionKey, NO_MOVE, 0, isPVNodeTT, NO_BOUND, staticEvaluation, NO_VALUE);
+
+    }
+    //////////////////////////////////////////////////////////
+
+    ////////////////////// Razoring //////////////////////////
+    if (!isRootNode && (depth < 2) && (staticEvaluationAdjusted <= (alpha - RAZOR_MARGIN)))
+        return quiescenceSearch(board, alpha, beta);
+    //////////////////////////////////////////////////////////
+
+    ////////////////// Futility Pruning //////////////////////
+    if (!isPVNode && (depth < 6) && (staticEvaluationAdjusted - (217 * depth) >= beta) && (staticEvaluationAdjusted < 10000))
+        return staticEvaluationAdjusted;
+    //////////////////////////////////////////////////////////
+
+    ////////// Internal Iterative Reductions (Play on Internal Iterative Deepening) //////////
+    if (isPVNode && (depth >= 6) && (hashMove == NO_MOVE)) depth -= 2;
+    //////////////////////////////////////////////////////////////////////////////////////////
+
     Move movesList[256];
     Move* movesListStart = movesList;
     Move* movesListEnd = generateAllPseudoMoves(board, movesListStart);
 
-    Color kingInCheck = board.sideToPlay;
-    Piece king        = (kingInCheck == WHITE) ? WHITE_KING : BLACK_KING;
-
-    int evaluation = 0;
+    int nodeScore = -INFINITE;
     int legalMoves = 0;
-    int bestEvaluation = -INFINITE;
-    int bestMove;
-    bool foundBestMove = false;
+    int bestNodeScore = -INFINITE;
+    int bestMove = NO_MOVE;
+
     assignMoveScores(movesListStart, movesListEnd, board);
     findBestMove(movesListStart, movesListEnd, hashMove);
     while (movesListStart < movesListEnd) {
@@ -136,18 +196,17 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth) {
         legalMoves++;
 
         ///////////// Principal Variation Search ///////////////////
-        if (foundBestMove) {
+        if ((isPVNode && legalMoves > 1) || !isPVNode) {
+            nodeScore = -alphaBeta(board, -alpha - 1, -alpha, depth - 1, false, ply + 1); //Search with null window
+        }
 
-            evaluation = -alphaBeta(board, -alpha - 1, -alpha, depth - 1); //Search with null window
-            if ((evaluation > alpha) && (evaluation < beta)) //Failed High (Must re-search)
-                evaluation = -alphaBeta(board, -beta, -alpha, depth - 1);
-
-        } else evaluation = -alphaBeta(board, -beta, -alpha, depth - 1);
+        if (isPVNode && ((legalMoves == 1) || ((nodeScore > alpha) && (nodeScore < beta)))) 
+            nodeScore = -alphaBeta(board, -beta, -alpha, depth - 1, true, ply + 1);
         ////////////////////////////////////////////////////////////
 
         board.undoMove();
-
-        if (evaluation >= beta) {
+/*
+        if (nodeScore >= beta) {
             pe->savePositionEvaluation(board.positionKey, movesListStart->move, depth, LOWER_BOUND, beta);
 
             ///////////// Save Killers /////////////////
@@ -161,13 +220,32 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth) {
             ////////////////////////////////////////////
 
             return beta;
-        }
-        if (evaluation > bestEvaluation) {
-            bestMove = movesListStart->move;
-            bestEvaluation = evaluation;
+        }*/
+        if (nodeScore > bestNodeScore) {
+            
+            bestNodeScore = nodeScore;
 
-            if(bestEvaluation > alpha) foundBestMove = true;
+            if (bestNodeScore > alpha) {
+                
+                bestMove = movesListStart->move;
+
+                if (isPVNode && (bestNodeScore < beta)) alpha = bestNodeScore;
+                else {
+
+                    ///////////// Save Killers /////////////////
+                    if (isQuietMove(*movesListStart)) {
+                        //Favour more recent beta cutoffs
+                        if (movesListStart->move != killerMoves[board.ply][0]) {
+                            killerMoves[board.ply][1] = killerMoves[board.ply][0];
+                            killerMoves[board.ply][0] = movesListStart->move;
+                        }
+                    }
+                    ////////////////////////////////////////////
+                    break;
+                }
+            }
         }
+
         movesListStart++;
         findBestMove(movesListStart, movesListEnd, hashMove);
     }
@@ -175,24 +253,15 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth) {
     //////////////// Checkmate or Stalemate /////////////////
     if(legalMoves == 0) {
         if (board.isSquareAttacked(board.pieceSquare[king][0], kingInCheck)) 
-            alpha = -MATE_SCORE + board.ply;
-        else alpha = STALEMATE_SCORE;
-        pe->savePositionEvaluation(board.positionKey, 0, depth, EXACT_BOUND, (alpha == STALEMATE_SCORE) ? STALEMATE_SCORE : -MATE_SCORE);
+            bestNodeScore = -CHECKMATE + board.ply;
+        else bestNodeScore = STALEMATE;
     }
     ////////////////////////////////////////////////////////
 
-    ///////////////// PV Node //////////////////////////////
-    else if (bestEvaluation > alpha) {
-        alpha = bestEvaluation;
-        pe->savePositionEvaluation(board.positionKey, bestMove, depth, EXACT_BOUND, alpha);
-    } 
-    ///////////////////////////////////////////////////////
-
-    /////////////// Fail Low //////////////////////////////
-    else pe->savePositionEvaluation(board.positionKey, bestMove, depth, UPPER_BOUND, alpha);
-    ///////////////////////////////////////////////////////
-
-    return alpha;
+    pe->savePositionEvaluation(board.positionKey, bestMove, depth, isPVNodeTT, 
+                               bestNodeScore >= beta ? LOWER_BOUND : isPVNode && (bestMove != NO_MOVE) ? EXACT_BOUND : UPPER_BOUND, 
+                               staticEvaluation, adjustNodeScoreToTT(bestNodeScore, board.ply));
+    return bestNodeScore;
 }
 
 void iterativeDeepening(ChessBoard& board, int maxDepth) {
@@ -205,7 +274,7 @@ void iterativeDeepening(ChessBoard& board, int maxDepth) {
 
     TT.updateAge();
     for (int depth = 1; depth <= maxDepth; depth++) {
-        evaluation = alphaBeta(board, alpha, beta, depth);
+        evaluation = alphaBeta(board, alpha, beta, depth, true, board.ply);
 
         //Fails Low
         if (evaluation <= alpha) {
@@ -215,15 +284,17 @@ void iterativeDeepening(ChessBoard& board, int maxDepth) {
             continue;
         } else if (evaluation >= beta) { //Fails High
             delta += (delta / 4) + 5;
-            beta = std::min(evaluation + delta, INFINITE);
+            beta = std::min(evaluation + delta, int(INFINITE));
             depth--;
             continue;
         }
 
         delta = (abs(evaluation) / 256) + 21;
         alpha = std::max(evaluation - delta, -INFINITE);
-        beta  = std::min(evaluation + delta,  INFINITE);
+        beta  = std::min(evaluation + delta,  int(INFINITE));
     }
+    auto t2 = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
 
     bool hasEvaluation = false;
     PositionEvaluation* pe = TT.probeTT(board.positionKey, hasEvaluation);
@@ -239,14 +310,12 @@ void iterativeDeepening(ChessBoard& board, int maxDepth) {
     else if ((moveType == ROOK_PROMOTION  ) || (moveType == ROOK_PROMOTION_CAPTURE  )) promotion = "r";
     else if ((moveType == QUEEN_PROMOTION ) || (moveType == QUEEN_PROMOTION_CAPTURE )) promotion = "q";
     ///////////////////////////////////////
+    std::cout << "info depth " << maxDepth << " time " << duration << " score cp " << pe->nodeScore << std::endl;
     std::cout << "bestmove " << NOTATION[getFrom(bestMoveInfo)] << NOTATION[getTo(bestMoveInfo)];
     if (promotion != "") std::cout << promotion << std::endl;
     else std::cout << std::endl;
     ////////////////////////////////////////
 
-    auto t2 = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::seconds>(t2 - t1).count();
-    std::cout << duration << std::endl;
 }
 
 ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta) {
@@ -344,8 +413,8 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta) {
 
     if ((legalMoves == 0) && generatedAllMoves) {
         if (board.isSquareAttacked(board.pieceSquare[king][0], kingInCheck)) 
-            alpha = -MATE_SCORE + board.ply;
-        else alpha = STALEMATE_SCORE;
+            alpha = -CHECKMATE + board.ply;
+        else alpha = STALEMATE;
     }
     return alpha;
 }

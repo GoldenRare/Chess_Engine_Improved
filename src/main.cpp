@@ -18,18 +18,19 @@
 //Remember the effects of not correctly updating pieceBoard (in board.hpp) in make/unmake move
 //Experimenting with PVS in QSearch
 //Adding const to ChessBoard& param
+//Changing Alpha-Beta from fail-hard to fail-soft
 int main() {
 
     initBoard();
     initMoves();
     initEvaluation();
     initZobrist();
-    //commandsLoop();
+    commandsLoop();
     
 
     //q2k2q1/2nqn2b/1n1P1n1b/2rnr2Q/1NQ1QN1Q/3Q3B/2RQR2B/Q2K2Q1 w - - 0 1
-    ChessBoard board("q2k2q1/2nqn2b/1n1P1n1b/2rnr2Q/1NQ1QN1Q/3Q3B/2RQR2B/Q2K2Q1 w - - 0 1");  
-    iterativeDeepening(board, 1);
+    //ChessBoard board("rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq - 0 2");  
+    //iterativeDeepening(board, 7);
 
 
 /*

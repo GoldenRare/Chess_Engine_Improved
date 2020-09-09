@@ -64,7 +64,17 @@ constexpr ExactScore PIECE_VALUE[PHASES][PIECES] =
       
     { PAWN_VALUE_ENDGAME   , KNIGHT_VALUE_ENDGAME   , BISHOP_VALUE_ENDGAME   , ROOK_VALUE_ENDGAME   , QUEEN_VALUE_ENDGAME   , 0,
       PAWN_VALUE_ENDGAME   , KNIGHT_VALUE_ENDGAME   , BISHOP_VALUE_ENDGAME   , ROOK_VALUE_ENDGAME   , QUEEN_VALUE_ENDGAME   , 0 }
-};  
+};
+
+
+////////// Pawn Bonuses and Penalties /////////
+constexpr int CONNECTED_PAWN_BONUS[RANKS] = { 0, 7, 8, 12, 29, 48, 86 };
+
+constexpr CombinedScore ISOLATED_PAWN_PENALTY  = makeScore( 5, 15);
+constexpr CombinedScore OPEN_TO_ATTACK_PENALTY = makeScore(13, 27);
+constexpr CombinedScore DOUBLED_PAWN_PENALTY   = makeScore(11, 56);
+constexpr CombinedScore WEAK_LEVER_PENALTY     = makeScore( 0, 56);
+///////////////////////////////////////////////
 
 constexpr CombinedScore OUTPOST_BONUS                 = makeScore(30, 21);
 constexpr CombinedScore REACHABLE_OUTPOST_BONUS       = makeScore(32, 10);
@@ -189,6 +199,7 @@ class Evaluation {
 
         void initEvaluation();
         CombinedScore evaluatePiece(PieceType pt, Color c);
+        CombinedScore evaluatePawn(Color c);
         int gamePhase();
 
 };

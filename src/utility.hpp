@@ -74,11 +74,12 @@ enum MoveType {
     
 };
 
-enum Bound { UPPER_BOUND = 1, LOWER_BOUND, EXACT_BOUND };
+enum Bound { NO_BOUND, UPPER_BOUND, LOWER_BOUND, EXACT_BOUND };
 
-constexpr int STALEMATE_SCORE = 0;
-constexpr int MATE_SCORE = 32000;
-constexpr int INFINITE = 32001;
+enum ValueType { STALEMATE = 0, CHECKMATE = 32000, INFINITE = 32001, NO_VALUE = 32002, 
+                 GUARANTEE_CHECKMATE = 31500, GUARANTEE_CHECKMATED = -31500 };
+
+constexpr unsigned int NO_MOVE = 0;
 constexpr int NUMBER_OF_SQUARES = 64;
 
 const constexpr char* NOTATION[NUMBER_OF_SQUARES] = {
@@ -214,6 +215,14 @@ inline File fileOfSquareFILE(Square s) {
 
 inline Bitboard fileOfSquareBB(Square s) {
     return FILE_A_BB >> fileOfSquareFILE(s);
+}
+
+inline Bitboard adjacentFiles(Square s) {
+    return ((fileOfSquareBB(s) & ~FILE_H_BB) >> (-EAST)) | ((fileOfSquareBB(s) & ~FILE_A_BB) << WEST);
+}
+
+inline Rank relativeRank(Color c, Square s) {
+    return Rank(rankOfSquareRANK(s) ^ (c * 7));
 }
 
 inline Color operator~(Color c) {

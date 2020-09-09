@@ -162,6 +162,63 @@ CombinedScore Evaluation::evaluatePiece(PieceType pt, Color c) {
     return cs;
 }
 
+CombinedScore Evaluation::evaluatePawn(Color c) {
+
+    CombinedScore cs = 0;
+    /////////////////////////////////////////
+    Direction pawnPush = (c == WHITE) ? NORTH : SOUTH;
+
+    Bitboard thesePawns = board.pieces[c == WHITE ? WHITE_PAWN : BLACK_PAWN];
+    Bitboard otherPawns = board.pieces[c == WHITE ? BLACK_PAWN : WHITE_PAWN];
+    /////////////////////////////////////////
+
+    int pawnIndex     = WHITE_PAWN + (6 * c);
+    int numberOfPawns = board.pieceCount[pawnIndex];
+
+    Square sq;
+    Bitboard sqToBB;
+    Bitboard opposing, blocking, stopping, levers, pawnPushLevers, adjacent, sideBySide, supporting;
+    bool doubled;
+
+    for (int i = 0; i < numberOfPawns; i++) {
+
+        sq     = board.pieceSquare[pawnIndex][i];
+        sqToBB = squareToBitboard(sq);
+
+        //////////////////////////////
+        opposing       = otherPawns & pawnFrontSpans(sqToBB, c);
+        blocking       = otherPawns & squareToBitboard(Square(sq + pawnPush));
+        stopping       = otherPawns & (pawnFrontSpans(sqToBB, c) | pawnAttackSpans(sqToBB, c));
+        levers         = otherPawns & pawnAttacks[c][sq];
+        pawnPushLevers = otherPawns & pawnAttacks[c][sq + pawnPush];
+        doubled        = (thesePawns & squareToBitboard(Square(sq - pawnPush))) > 0;
+        adjacent       = thesePawns & adjacentFiles(sq);
+        sideBySide     = adjacent   & rankOfSquareBB(sq);
+        supporting     = adjacent   & rankOfSquareBB(Square(sq - pawnPush));
+        //////////////////////////////
+
+        if ((supporting > 0) || (sideBySide > 0)) {
+
+            Rank relativeRANK = relativeRank(c, sq);
+
+            int sideBySideBonus = (sideBySide > 0) ? 1 : 0;
+            int opposedPenalty  = (opposing   > 0) ? 1 : 0;
+
+            ExactScore score = (CONNECTED_PAWN_BONUS[relativeRANK] * (2 + sideBySideBonus - opposedPenalty))
+                             + (21 * populationCount(supporting));
+
+            cs += makeScore(score, (score * (relativeRANK - 2)) / 4);
+
+        } else if (adjacent == 0) cs -= ISOLATED_PAWN_PENALTY + (opposing == 0) ? OPEN_TO_ATTACK_PENALTY : 0;
+
+        if (supporting == 0) cs -= (doubled                    ) ? DOUBLED_PAWN_PENALTY : 0 
+                                +  ((levers & (levers - 1)) > 0) ? WEAK_LEVER_PENALTY   : 0;
+    }
+
+    return cs;
+
+}
+
 ExactScore Evaluation::evaluatePosition() {
 
     ExactScore evaluation;
@@ -174,6 +231,8 @@ ExactScore Evaluation::evaluatePosition() {
     cs += evaluatePiece(BISHOP, WHITE) - evaluatePiece(BISHOP, BLACK);
     cs += evaluatePiece(ROOK  , WHITE) - evaluatePiece(ROOK  , BLACK);
     cs += evaluatePiece(QUEEN , WHITE) - evaluatePiece(QUEEN , BLACK);
+    
+    cs += evaluatePawn(WHITE) - evaluatePawn(BLACK);
 
     cs += evaluatePieceSquareScore(board);
     cs = (board.sideToPlay == WHITE) ? cs : -cs; //Score relative to the side to play

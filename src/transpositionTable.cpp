@@ -1,6 +1,7 @@
 #include <cstdint>
 #include "transpositionTable.hpp"
 #include "utility.hpp"
+#include "evaluation.hpp"
 
 TranspositionTable TT;
 
@@ -53,21 +54,41 @@ PositionEvaluation* TranspositionTable::probeTT(PositionKey key, bool& hasEvalua
     return replace;
 }
 
-void PositionEvaluation::savePositionEvaluation(PositionKey pk, uint16_t m, uint8_t d, uint8_t b, int16_t e) {
+void PositionEvaluation::savePositionEvaluation(PositionKey pk, uint16_t m, uint8_t d, bool pv, uint8_t b, int16_t se, int16_t ns) {
 
     uint16_t keyIndex = pk & 0xFFFF;
+
+    if ((m != NO_MOVE) || (keyIndex != positionKey))
+        move = m;
 
     if ((keyIndex != positionKey) || (d > depth) || (b == EXACT_BOUND)) {
 
         positionKey = keyIndex;
-        move = m;
+        //move = m;
         depth = d;
-        ageBounds = TT.getAge() | b;
-        evaluation = e;
+        ageBounds = TT.getAge() | ((pv == true) ? 1 << 2 : 0 << 2) | b;
+        staticEvaluation = se;
+        nodeScore = ns;
 
     }
 }
 
 Bound PositionEvaluation::getBound() {
     return Bound(ageBounds & 0x3);
+}
+
+bool PositionEvaluation::isPVNode() {
+    return (ageBounds & 0b100) > 0;
+}
+
+ExactScore adjustNodeScoreFromTT(int16_t nodeScoreTT, int ply) {
+    return nodeScoreTT ==  CHECKMATE ? nodeScoreTT - ply :
+           nodeScoreTT == -CHECKMATE ? nodeScoreTT + ply :
+           nodeScoreTT; 
+}
+
+ExactScore adjustNodeScoreToTT(int16_t nodeScoreTT, int ply) {
+    return nodeScoreTT >= GUARANTEE_CHECKMATE  ?  CHECKMATE : 
+           nodeScoreTT <= GUARANTEE_CHECKMATED ? -CHECKMATE :
+           nodeScoreTT;
 }
