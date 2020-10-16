@@ -2,7 +2,7 @@
 #include "utility.hpp"
 #include "evaluation.hpp"
 
-unsigned int killerMoves[MAX_PLY][2] = { };
+unsigned int killerMoves[MAX_PLY + MAX_PLY][2] = { };
 
 void findBestMove(Move* movesListStart, Move* movesListEnd, unsigned int& hashMove) {
 

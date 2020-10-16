@@ -27,19 +27,16 @@ int main() {
     initZobrist();
     commandsLoop();
     
-
     //q2k2q1/2nqn2b/1n1P1n1b/2rnr2Q/1NQ1QN1Q/3Q3B/2RQR2B/Q2K2Q1 w - - 0 1
-    //ChessBoard board("rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq - 0 2");  
-    //iterativeDeepening(board, 7);
-
+    //ChessBoard board;  
+    //iterativeDeepening(board, 6);
 
 /*
-    ChessBoard board;
-    //divide(board, 4);/*
+    ChessBoard board("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
     auto t1 = std::chrono::high_resolution_clock::now();
     std::cout << perft(board, 6) << std::endl;
     auto t2 = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::seconds>(t2 - t1).count();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
     std::cout << duration << std::endl;*/
 
     return 0; 

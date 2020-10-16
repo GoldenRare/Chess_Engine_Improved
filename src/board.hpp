@@ -22,6 +22,8 @@ class ChessBoard {
         Color sideToPlay;
         Square enPassant;
         unsigned int castlingRights; // Order of the bits: blackQueenside, blackKingside, whiteQueenside, whiteKingside
+        int nonPawnMaterial[COLOURS]; //The sum of all piece values for a given side (not including pawns or kings)
+        CombinedScore pieceSquareScore; // A score which combines the value of each piece and the square it occupies (score is relative to white)
 
         unsigned int ply;
         unsigned int halfmoves; 
@@ -34,9 +36,10 @@ class ChessBoard {
 
         void parseFEN(std::string fen);
         bool isSquareAttacked(Square sq, Color attacked) const; //Returns if a square is attacked by a certain color
+        Bitboard attackersToSquare(Square sq, Bitboard occupied); //Returns a bitboard of pieces that are attacking a particular square (regardless of color)
         void makeMove(const Move& move);
         void undoMove();
-        Bitboard blockers(Square sq, Bitboard sliders) const; //Returns a bitboard of pieces that are blocking a square from being attacked 
+        Bitboard blockers(Square sq, Bitboard sliders, Bitboard& pinners) const; //Returns a bitboard of pieces that are blocking a square from being attacked 
 
     private:
 

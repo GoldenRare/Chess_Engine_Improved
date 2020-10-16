@@ -5,6 +5,8 @@
 
 typedef uint64_t Bitboard;
 typedef uint64_t PositionKey;
+typedef int CombinedScore; //32 Bit integer (upper 16 bits == endgame score, lower 16 bits == middlegame score)
+typedef int ExactScore;
 
 enum PieceType { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, ALL_PIECE_TYPES, PIECE_TYPES };
 
@@ -95,6 +97,9 @@ const constexpr char* NOTATION[NUMBER_OF_SQUARES] = {
 
 };
 
+constexpr Bitboard ENTIRE_BOARD  = 0xFFFFFFFFFFFFFFFF;
+constexpr Bitboard LIGHT_SQUARES = 0xAA55AA55AA55AA55;
+constexpr Bitboard DARK_SQUARES  = ~LIGHT_SQUARES;
 
 constexpr Bitboard FILE_H_BB = 0x0101010101010101;
 constexpr Bitboard FILE_G_BB = FILE_H_BB << (1 * WEST);
@@ -105,6 +110,10 @@ constexpr Bitboard FILE_C_BB = FILE_H_BB << (5 * WEST);
 constexpr Bitboard FILE_B_BB = FILE_H_BB << (6 * WEST);
 constexpr Bitboard FILE_A_BB = FILE_H_BB << (7 * WEST);
 
+constexpr Bitboard QUEEN_SIDE   = FILE_A_BB | FILE_B_BB | FILE_C_BB | FILE_D_BB;
+constexpr Bitboard KING_SIDE    = FILE_E_BB | FILE_F_BB | FILE_G_BB | FILE_H_BB;
+constexpr Bitboard CENTER_FILES = FILE_C_BB | FILE_D_BB | FILE_E_BB | FILE_F_BB;
+
 constexpr Bitboard RANK_1_BB = 0x00000000000000FF;
 constexpr Bitboard RANK_2_BB = RANK_1_BB << (1 * NORTH);
 constexpr Bitboard RANK_3_BB = RANK_1_BB << (2 * NORTH);
@@ -113,6 +122,8 @@ constexpr Bitboard RANK_5_BB = RANK_1_BB << (4 * NORTH);
 constexpr Bitboard RANK_6_BB = RANK_1_BB << (5 * NORTH);
 constexpr Bitboard RANK_7_BB = RANK_1_BB << (6 * NORTH);
 constexpr Bitboard RANK_8_BB = RANK_1_BB << (7 * NORTH);
+
+constexpr Bitboard CENTER_SQUARES = (FILE_D_BB | FILE_E_BB) & (RANK_4_BB | RANK_5_BB);
 
 constexpr int DE_BRUIJN_INDEX[NUMBER_OF_SQUARES] = {
 
@@ -181,9 +192,30 @@ inline bool isQuietMove(Move m) {
     return true;
 }
 
+//Returns if a move is a capture move but not an en passant capture (essentially is the move safe to be used in the SEE function)
+inline bool isSEECapture(Move m) {
+    MoveType moveType = typeOfMove(m);
+    if ((moveType == CAPTURE) || (moveType == KNIGHT_PROMOTION_CAPTURE) || (moveType == BISHOP_PROMOTION_CAPTURE) 
+     || (moveType == ROOK_PROMOTION_CAPTURE) || (moveType == QUEEN_PROMOTION_CAPTURE)) return true;
+    return false;
+}
+
 //Returns the square as a Bitboard
 inline Bitboard squareToBitboard(Square sq) {
     return 1ULL << sq;
+}
+
+//Returns the square of the most significant 1 bit
+//using the De Bruijn bitscan algorithm
+constexpr Square squareOfMS1B(Bitboard b) {
+    b |= b >> 32;
+    b |= b >> 16;
+    b |= b >>  8;
+    b |= b >>  4;
+    b |= b >>  2;
+    b |= b >>  1;
+    Bitboard MS1B = (b >> 1) + 1;
+    return static_cast<Square>(DE_BRUIJN_INDEX[(MS1B * DE_BRUIJN_SEQUENCE) >> 58]);
 }
 
 //Returns the square of the least significant 1 bit 
@@ -199,6 +231,23 @@ inline Square squareOfLS1B(Bitboard* b) {
     Bitboard LS1B = *b & (-*b);
     *b &= (*b - 1);
     return static_cast<Square>(DE_BRUIJN_INDEX[(LS1B * DE_BRUIJN_SEQUENCE) >> 58]);
+}
+
+//Returns the furthest square of a bitboard dependent on side
+inline Square furthestSquare(Bitboard b, Color c) {
+    return c == WHITE ? squareOfMS1B(b) : squareOfLS1B(b);
+}
+
+inline PieceType pieceToPieceType(Piece p) {
+    return PieceType(p >= BLACK_PAWN ? p - 6 : p);
+}
+
+inline Color colorOfPiece(Piece p) {
+    return p <= WHITE_KING ? WHITE : BLACK;
+}
+
+inline bool hasMoreThanOneBit(Bitboard b) {
+    return (b & (b - 1)) > 0;
 }
 
 inline Rank rankOfSquareRANK(Square s) {
@@ -223,6 +272,17 @@ inline Bitboard adjacentFiles(Square s) {
 
 inline Rank relativeRank(Color c, Square s) {
     return Rank(rankOfSquareRANK(s) ^ (c * 7));
+}
+
+inline Bitboard ranksInFront(Color c, Square s) {
+    int offset = c == WHITE ? rankOfSquareRANK(s) + 1 : 8 - rankOfSquareRANK(s);
+    if (offset == 8) return 0;
+    else             return c == WHITE ? ENTIRE_BOARD << 8 * offset
+                                       : ENTIRE_BOARD >> 8 * offset;
+}
+
+inline int keepInRange(int low, int high, int value) {
+    return value < low ? low : value > high ? high : value;
 }
 
 inline Color operator~(Color c) {

@@ -10,6 +10,7 @@
 #include "evaluation.hpp"
 #include "transpositionTable.hpp"
 #include "moveSorter.hpp"
+#include "moves.hpp"
 
 #include <cassert>
 
@@ -80,7 +81,7 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
     /////////////////////////////////////////////////////////
     
     if (depth <= 0) 
-        return quiescenceSearch(board, alpha, beta);
+        return quiescenceSearch(board, alpha, beta, isPVNode);
 
     //////////////// Mate Distance Pruning //////////////////
     ExactScore assumeCheckmate = CHECKMATE - board.ply;
@@ -157,7 +158,7 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
 
     ////////////////////// Razoring //////////////////////////
     if (!isRootNode && (depth < 2) && (staticEvaluationAdjusted <= (alpha - RAZOR_MARGIN)))
-        return quiescenceSearch(board, alpha, beta);
+        return quiescenceSearch(board, alpha, beta, isPVNode);
     //////////////////////////////////////////////////////////
 
     ////////////////// Futility Pruning //////////////////////
@@ -318,8 +319,9 @@ void iterativeDeepening(ChessBoard& board, int maxDepth) {
 
 }
 
-ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta) {
+ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta, bool isPVNode) {
 
+    bool inCheck;
     Color kingInCheck = board.sideToPlay;
     Piece king        = (kingInCheck == WHITE) ? WHITE_KING : BLACK_KING;
 
@@ -331,37 +333,96 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta) {
     Move movesList[256];
     Move* movesListStart = movesList;
     Move* movesListEnd;
-    bool generatedAllMoves = false;
+    int oldAlpha;
 
+    if (isPVNode) oldAlpha = alpha;
     ////////// Check For Repetition/50-Move rule ////////////
     if (isRepetition(board) || board.halfmoves >= 100) return 0;
     /////////////////////////////////////////////////////////
+
+    ///////////////// Transposition Table ///////////////////
+    bool hasEvaluation;
+    PositionEvaluation* pe = TT.probeTT(board.positionKey, hasEvaluation);
+    unsigned int hashMove = 0;
+    ExactScore nodeScoreTT = NO_VALUE;
+    bool isPVNodeTT = false;
+
+    if (hasEvaluation) {
+
+        if (0 <= pe->depth && !isPVNode) {
+
+            ExactScore temp = adjustNodeScoreFromTT(pe->nodeScore, board.ply);
+            if (pe->getBound() == EXACT_BOUND) 
+                return temp;
+            else if ((pe->getBound() == LOWER_BOUND) && temp > alpha) alpha = temp;
+            else if ((pe->getBound() == UPPER_BOUND) && temp < beta ) beta  = temp; 
+
+            if (alpha >= beta) return beta;
+
+        }
+        isPVNodeTT = pe->isPVNode();
+        nodeScoreTT = adjustNodeScoreFromTT(pe->nodeScore, board.ply); 
+        hashMove = (pe->move == NO_MOVE) ? 0 : pe->move;
+    }
+    //////////////////////////////////////////////////////////
     
     /* SEARCH EXPLOSION BECAUSE OF GENERATING ALL MOVES WHEN NOT IN CHECK */
-    ////////////Stand-Pat if not in check////////////////////////////
-    if (!board.isSquareAttacked(board.pieceSquare[king][0], kingInCheck)) {
-
-        Evaluation evaluation(board);
-        ExactScore standPat = evaluation.evaluatePosition();
-        if (standPat >= beta) return beta;
-        if (standPat > alpha) alpha = standPat;
-        movesListEnd = generateAllPseudoCaptureMoves(board, movesListStart);
-
-    } else {
+    ExactScore staticEvaluation, bestNodeScore;
+    inCheck = board.isSquareAttacked(board.pieceSquare[king][0], kingInCheck);
+    ///////////////// Static Evaluation //////////////////////
+    if (inCheck) { 
+        staticEvaluation = NO_VALUE;
+        bestNodeScore = -INFINITE;
         movesListEnd = generateAllPseudoMoves(board, movesListStart);
-        generatedAllMoves = true;
     }
-    //////////////////////////////////////////////////////////////////
+    else {
 
-    int evaluation = 0;
-    int legalMoves = 0;
-    unsigned int temp = 0;
-    bool foundBestMove = false;
+        if (hasEvaluation) {
+
+            bestNodeScore = staticEvaluation = pe->staticEvaluation;
+            if (staticEvaluation == NO_VALUE) {
+                Evaluation eval(board);
+                bestNodeScore = staticEvaluation = eval.evaluatePosition();
+            }
+
+            // nodeScoreTT can potentially be used as better score than the actual static evaluation
+            if ((nodeScoreTT != NO_VALUE) && (pe->getBound() & (nodeScoreTT > staticEvaluation ? LOWER_BOUND : UPPER_BOUND) > 0))
+                bestNodeScore = nodeScoreTT;
+        } else {
+            
+            Evaluation eval(board);
+            bestNodeScore = staticEvaluation = eval.evaluatePosition();
+        }
+
+        if (bestNodeScore >= beta) {
+
+            pe->savePositionEvaluation(board.positionKey, NO_MOVE, 0, isPVNodeTT, LOWER_BOUND, staticEvaluation, adjustNodeScoreToTT(bestNodeScore, board.ply));
+            return bestNodeScore;
+        }
+
+        if (isPVNode && bestNodeScore > alpha) alpha = bestNodeScore;
+        movesListEnd = generateAllPseudoCaptureMoves(board, movesListStart);
+    } 
+    //////////////////////////////////////////////////////////
+
+    ExactScore nodeScore = -INFINITE;
+    int movesChecked = 0;
+    int bestMove = NO_MOVE;
+    bool nonCaptureCheckEvasionPrunable;
 
     assignMoveScores(movesListStart, movesListEnd, board);
-    findBestMove(movesListStart, movesListEnd, temp);
+    findBestMove(movesListStart, movesListEnd, hashMove);
     while (movesListStart < movesListEnd) {
 
+        movesChecked++;
+        nonCaptureCheckEvasionPrunable = inCheck && movesChecked > 2 && bestNodeScore > GUARANTEE_CHECKMATED && isQuietMove(*movesListStart);
+        if ((!inCheck || nonCaptureCheckEvasionPrunable) && !SEE(board, *movesListStart, 0)) {
+
+            movesListStart++;
+            findBestMove(movesListStart, movesListEnd, hashMove);
+            continue;
+        }
+        
         board.makeMove(*movesListStart);
         
         //If move is illegal, don't evaluate
@@ -369,54 +430,52 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta) {
 
             board.undoMove();
             movesListStart++;
-            findBestMove(movesListStart, movesListEnd, temp);
+            movesChecked--;
+            findBestMove(movesListStart, movesListEnd, hashMove);
             continue;
 
         }
-        legalMoves++;
-
-        ///////////// Principal Variation Search ///////////////////
-        if (foundBestMove) {
-
-            evaluation = -quiescenceSearch(board, -alpha - 1, -alpha); //Search with null window
-            if ((evaluation > alpha) && (evaluation < beta)) //Failed High (Must re-search)
-                evaluation = -quiescenceSearch(board, -beta, -alpha);
-
-        } else evaluation = -quiescenceSearch(board, -beta, -alpha);
-        ////////////////////////////////////////////////////////////
-
-        //evaluation = -quiescenceSearch(board, -beta, -alpha);
+        nodeScore = -quiescenceSearch(board, -beta, -alpha, isPVNode);
         board.undoMove();
 
-        if (evaluation >= beta) {
+        if (nodeScore > bestNodeScore) {
+            
+            bestNodeScore = nodeScore;
 
-            ///////////// Save Killers /////////////////
-            //This situation can occur if we have to generateAllPseudoMoves
-            if (isQuietMove(*movesListStart)) {
-                //Favour more recent beta cutoffs
-                if (movesListStart->move != killerMoves[board.ply][0]) {
-                    killerMoves[board.ply][1] = killerMoves[board.ply][0];
-                    killerMoves[board.ply][0] = movesListStart->move;
+            if (bestNodeScore > alpha) {
+                
+                bestMove = movesListStart->move;
+
+                if (isPVNode && (bestNodeScore < beta)) alpha = bestNodeScore;
+                else {
+
+                    ///////////// Save Killers /////////////////
+                    if (isQuietMove(*movesListStart)) {
+                        //Favour more recent beta cutoffs
+                        if (movesListStart->move != killerMoves[board.ply][0]) {
+                            killerMoves[board.ply][1] = killerMoves[board.ply][0];
+                            killerMoves[board.ply][0] = movesListStart->move;
+                        }
+                    }
+                    ////////////////////////////////////////////
+                    break;
                 }
             }
-            ////////////////////////////////////////////
-
-            return beta;
-        }
-        if (evaluation > alpha) {
-            alpha = evaluation;
-            foundBestMove = true;
         }
         movesListStart++;
-        findBestMove(movesListStart, movesListEnd, temp);
+        findBestMove(movesListStart, movesListEnd, hashMove);
     }
 
-    if ((legalMoves == 0) && generatedAllMoves) {
+    if (inCheck && bestNodeScore == -INFINITE) {
         if (board.isSquareAttacked(board.pieceSquare[king][0], kingInCheck)) 
             alpha = -CHECKMATE + board.ply;
         else alpha = STALEMATE;
     }
-    return alpha;
+
+    pe->savePositionEvaluation(board.positionKey, bestMove, 0, isPVNodeTT, 
+                               bestNodeScore >= beta ? LOWER_BOUND : isPVNode && (bestNodeScore > oldAlpha) ? EXACT_BOUND : UPPER_BOUND, 
+                               staticEvaluation, adjustNodeScoreToTT(bestNodeScore, board.ply));
+    return bestNodeScore;
 }
 
 bool isRepetition(ChessBoard& board) {
@@ -429,4 +488,119 @@ bool isRepetition(ChessBoard& board) {
         if (board.positionKey == board.previousGameStates[i].key) return true;
 
     return false;
+}
+
+// Move must be a capture move
+bool SEE(ChessBoard& board, Move move, int materialValue) {
+
+    if (!isSEECapture(move)) {
+        return 0 >= materialValue;
+    }
+
+    Square fromSquare = Square(getFrom(move));
+    Square toSquare   = Square(getTo(move));
+
+    int swapOffValue = PIECE_VALUE[MIDDLEGAME][board.pieceBoard[toSquare]] - materialValue;
+    if (swapOffValue < 0) return false;
+
+    swapOffValue = PIECE_VALUE[MIDDLEGAME][board.pieceBoard[fromSquare]] - swapOffValue;
+    if (swapOffValue <= 0) return true;
+
+    Bitboard kingBlockers[COLOURS];
+    Bitboard slidersPinningEnemyKing[COLOURS];
+    //////////////////////////////////////
+    Bitboard pawns   = board.pieces[WHITE_PAWN  ] | board.pieces[BLACK_PAWN  ];
+    Bitboard knights = board.pieces[WHITE_KNIGHT] | board.pieces[BLACK_KNIGHT];
+    Bitboard bishops = board.pieces[WHITE_BISHOP] | board.pieces[BLACK_BISHOP];
+    Bitboard rooks   = board.pieces[WHITE_ROOK  ] | board.pieces[BLACK_ROOK  ];
+    Bitboard queens  = board.pieces[WHITE_QUEEN ] | board.pieces[BLACK_QUEEN ];
+
+    kingBlockers[WHITE] = board.blockers(board.pieceSquare[WHITE_KING][0], board.piecesOnSide[BLACK], slidersPinningEnemyKing[BLACK]);
+    kingBlockers[BLACK] = board.blockers(board.pieceSquare[BLACK_KING][0], board.piecesOnSide[WHITE], slidersPinningEnemyKing[WHITE]);
+    //////////////////////////////////////
+
+    Bitboard occupied = board.gameBoard ^ squareToBitboard(fromSquare) ^ squareToBitboard(toSquare);
+    Color sideOfInterest = board.sideToPlay;
+    Bitboard attackers = board.attackersToSquare(toSquare, occupied);
+    Bitboard sideOfInterestAttackers, leastValuableAttacker;
+    int result = 1;
+
+    while (true) {
+
+        sideOfInterest = ~sideOfInterest;
+        attackers &= occupied;
+
+        sideOfInterestAttackers = attackers & board.piecesOnSide[sideOfInterest];
+        if (sideOfInterestAttackers == 0) break;
+
+        if ((slidersPinningEnemyKing[~sideOfInterest] & occupied) > 0)
+            sideOfInterestAttackers &= ~kingBlockers[sideOfInterest];
+
+        if (sideOfInterestAttackers == 0) break;
+
+        result ^= 1;
+
+        leastValuableAttacker = sideOfInterestAttackers & pawns;
+        if (leastValuableAttacker > 0) {
+
+            swapOffValue = PAWN_VALUE_MIDDLEGAME - swapOffValue;
+            if (swapOffValue < result) break;
+
+            occupied ^= squareToBitboard(squareOfLS1B(leastValuableAttacker));
+            attackers |= bishopAttacks(occupied, toSquare) & (bishops | queens);
+            continue;
+
+        }
+
+        leastValuableAttacker = sideOfInterestAttackers & knights;
+        if (leastValuableAttacker > 0) {
+
+            swapOffValue = KNIGHT_VALUE_MIDDLEGAME - swapOffValue;
+            if (swapOffValue < result) break;
+
+            occupied ^= squareToBitboard(squareOfLS1B(leastValuableAttacker));
+            continue;
+            
+        }
+
+        leastValuableAttacker = sideOfInterestAttackers & bishops;
+        if (leastValuableAttacker > 0) {
+
+            swapOffValue = BISHOP_VALUE_MIDDLEGAME - swapOffValue;
+            if (swapOffValue < result) break;
+
+            occupied ^= squareToBitboard(squareOfLS1B(leastValuableAttacker));
+            attackers |= bishopAttacks(occupied, toSquare) & (bishops | queens);
+            continue;
+            
+        }
+
+        leastValuableAttacker = sideOfInterestAttackers & rooks;
+        if (leastValuableAttacker > 0) {
+
+            swapOffValue = ROOK_VALUE_MIDDLEGAME - swapOffValue;
+            if (swapOffValue < result) break;
+
+            occupied ^= squareToBitboard(squareOfLS1B(leastValuableAttacker));
+            attackers |= rookAttacks(occupied, toSquare) & (rooks | queens);
+            continue;
+            
+        }
+
+        leastValuableAttacker = sideOfInterestAttackers & queens;
+        if (leastValuableAttacker > 0) {
+
+            swapOffValue = QUEEN_VALUE_MIDDLEGAME - swapOffValue;
+            if (swapOffValue < result) break;
+
+            occupied ^= squareToBitboard(squareOfLS1B(leastValuableAttacker));
+            attackers |= bishopAttacks(occupied, toSquare) & (bishops | queens) | rookAttacks(occupied, toSquare) & (rooks | queens);
+            continue;
+            
+        }
+
+        return (attackers & ~board.piecesOnSide[sideOfInterest]) ? result ^ 1 : result;
+    }
+
+    return result == 0 ? false : true;
 }

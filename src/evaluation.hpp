@@ -7,9 +7,6 @@
 #include "utility.hpp"
 #include "board.hpp"
 
-typedef int CombinedScore; //32 Bit integer (upper 16 bits == endgame score, lower 16 bits == middlegame score)
-typedef int ExactScore;
-
 extern CombinedScore pieceSquareTable[PIECES][NUMBER_OF_SQUARES];
 
 enum Phase {
@@ -39,10 +36,27 @@ constexpr Bitboard whiteOutpostRanks = RANK_4_BB | RANK_5_BB | RANK_6_BB;
 constexpr Bitboard blackOutpostRanks = RANK_5_BB | RANK_4_BB | RANK_3_BB;
 
 constexpr int MAX_QUEEN_MOVEMENTS = 27;
+constexpr int SPACE_THRESHOLD = 12222;
 
-CombinedScore evaluatePieceSquareScore(const ChessBoard& board);
-CombinedScore evaluatePieceSquareScoreHelper(const ChessBoard& board, int numberOfPieces, Piece piece);
+///////////////////////////////
+constexpr int QUADRATIC_PARAMETERS_OURS[ALL_PIECE_TYPES][ALL_PIECE_TYPES] = {
+    {1438                         }, // Bishop pair
+    {  40,  38                    }, // Pawn
+    {  32, 255, -62               }, // Knight
+    {   0, 104,   4,   0          }, // Bishop
+    { -26,  -2,  47, 105, -208    }, // Rook
+    {-189,  24, 117, 133, -134, -6}  // Queen
+};
 
+constexpr int QUADRATIC_PARAMETERS_THEIRS[ALL_PIECE_TYPES][ALL_PIECE_TYPES] = {
+    {  0                       }, // Bishop pair
+    { 36,   0                  }, // Pawn
+    {  9,  63,   0             }, // Knight
+    { 59,  65,  42,   0        }, // Bishop
+    { 46,  39,  24, -24,   0   }, // Rook
+    { 97, 100, -42, 137, 268, 0}  // Queen
+};
+///////////////////////////////
 constexpr CombinedScore makeScore(int middlegame, int endgame) {
     return CombinedScore((int)((unsigned int) endgame << 16) + middlegame);
 }
@@ -57,6 +71,10 @@ inline ExactScore endgameScore(CombinedScore cs) {
     return ExactScore(endgame.sign);
 }
 
+inline bool compareCombinedScores(CombinedScore cs1, CombinedScore cs2) {
+    return middlegameScore(cs1) < middlegameScore(cs2);
+}
+
 constexpr ExactScore PIECE_VALUE[PHASES][PIECES] = 
 {
     { PAWN_VALUE_MIDDLEGAME, KNIGHT_VALUE_MIDDLEGAME, BISHOP_VALUE_MIDDLEGAME, ROOK_VALUE_MIDDLEGAME, QUEEN_VALUE_MIDDLEGAME, 0, 
@@ -68,19 +86,61 @@ constexpr ExactScore PIECE_VALUE[PHASES][PIECES] =
 
 
 ////////// Pawn Bonuses and Penalties /////////
-constexpr int CONNECTED_PAWN_BONUS[RANKS] = { 0, 7, 8, 12, 29, 48, 86 };
+constexpr ExactScore CONNECTED_PAWN_BONUS[RANKS] = { 0, 7, 8, 12, 29, 48, 86 };
+constexpr ExactScore PAWN_SHELTER_BONUS[FILES / 2][RANKS] = {
+    {  -6,  81,  93,  58,  39,  18,   25 },
+    { -43,  61,  35, -49, -29, -11,  -63 },
+    { -10,  75,  23,  -2,  32,   3,  -45 },
+    { -39, -13, -29, -52, -48, -67, -166 }
+};
+constexpr ExactScore UNBLOCKED_PAWN_STORM_PENALTY[FILES / 2][RANKS] = {
+    {  85, -289, -166, 97, 50,  45,  50 },
+    {  46,  -25,  122, 45, 37, -10,  20 },
+    {  -6,   51,  168, 34, -2, -22, -14 },
+    { -15,  -11,  101,  4, 11, -15, -29 }  
+};
+constexpr CombinedScore PASSED_PAWN_BONUS[RANKS] = 
+{ makeScore(0, 0), makeScore(10, 28), makeScore(17, 33), makeScore(15, 41), makeScore(62, 72), makeScore(168, 177), makeScore(276, 260) };
 
-constexpr CombinedScore ISOLATED_PAWN_PENALTY  = makeScore( 5, 15);
-constexpr CombinedScore OPEN_TO_ATTACK_PENALTY = makeScore(13, 27);
-constexpr CombinedScore DOUBLED_PAWN_PENALTY   = makeScore(11, 56);
-constexpr CombinedScore WEAK_LEVER_PENALTY     = makeScore( 0, 56);
+constexpr CombinedScore ISOLATED_PAWN_PENALTY      = makeScore( 5, 15);
+constexpr CombinedScore OPEN_TO_ATTACK_PENALTY     = makeScore(13, 27);
+constexpr CombinedScore DOUBLED_PAWN_PENALTY       = makeScore(11, 56);
+constexpr CombinedScore WEAK_LEVER_PENALTY         = makeScore( 0, 56);
+constexpr CombinedScore BACKWARD_PAWN_PENALTY      = makeScore( 9, 24);
+constexpr CombinedScore INSIDE_PASSED_PAWN_PENALTY = makeScore(11,  8);
+constexpr CombinedScore BLOCKED_PAWN_STORM_PENALTY = makeScore(82, 82);
 ///////////////////////////////////////////////
 
-constexpr CombinedScore OUTPOST_BONUS                 = makeScore(30, 21);
-constexpr CombinedScore REACHABLE_OUTPOST_BONUS       = makeScore(32, 10);
-constexpr CombinedScore MINOR_PIECE_BEHIND_PAWN_BONUS = makeScore(18,  3);
-constexpr CombinedScore KING_PROTECTOR_PENALTY        = makeScore( 7,  8);
+constexpr CombinedScore ROOK_ON_SEMI_OR_OPEN_FILE_BONUS[2] = { makeScore(21, 4), makeScore(47, 25) };
+constexpr CombinedScore THREATENED_BY_MINOR_PIECE_BONUS[ALL_PIECE_TYPES] = { // Indexed by which piece type we are attacking
+    makeScore(6, 32), makeScore(59, 41), makeScore(79, 56), makeScore(90, 119), makeScore(79, 161), makeScore(0, 0)
+};
+constexpr CombinedScore THREATENED_BY_ROOK_BONUS[ALL_PIECE_TYPES] = { // Indexed by which piece type we are attacking
+    makeScore(3, 44), makeScore(38, 71), makeScore(38, 61), makeScore(0, 38), makeScore(51, 38), makeScore(0, 0)
+};
 
+constexpr CombinedScore OUTPOST_BONUS                       = makeScore( 30, 21);
+constexpr CombinedScore REACHABLE_OUTPOST_BONUS             = makeScore( 32, 10);
+constexpr CombinedScore MINOR_PIECE_BEHIND_PAWN_BONUS       = makeScore( 18,  3);
+constexpr CombinedScore BISHOP_CONTROL_OF_CENTER_BONUS      = makeScore( 45,  0);
+constexpr CombinedScore ROOK_ON_QUEEN_FILE_BONUS            = makeScore(  7,  6);
+constexpr CombinedScore THREATENED_BY_KING_BONUS            = makeScore( 24, 89);
+constexpr CombinedScore THREATENED_BY_SAFE_PAWN_BONUS       = makeScore(173, 94);
+constexpr CombinedScore KNIGHT_ATTACKING_QUEEN_BONUS        = makeScore( 16, 12);
+constexpr CombinedScore SLIDING_PIECE_ATTACKING_QUEEN_BONUS = makeScore( 59, 18);
+constexpr CombinedScore HANGING_PIECE_BONUS                 = makeScore( 69, 36);
+constexpr CombinedScore PIECE_MOVEMENT_RESTRICTED_BONUS     = makeScore(  7,  7);
+constexpr CombinedScore KING_PROTECTOR_PENALTY              = makeScore(  7,  8);
+constexpr CombinedScore PAWNS_BLOCKING_BISHOP_PENALTY       = makeScore(  3,  7);
+constexpr CombinedScore ROOK_TRAPPED_PENALTY                = makeScore( 52, 10);
+constexpr CombinedScore QUEEN_IS_WEAK_PENALTY               = makeScore( 49, 15);
+
+constexpr ExactScore SAFE_KNIGHT_CHECK_PENALTY = 790;
+constexpr ExactScore SAFE_BISHOP_CHECK_PENALTY = 635;
+constexpr ExactScore SAFE_ROOK_CHECK_PENALTY = 1080;
+constexpr ExactScore SAFE_QUEEN_CHECK_PENALTY = 780;
+
+constexpr int KING_ATTACKERS_WEIGHT[ALL_PIECE_TYPES] = { 0, 81, 52, 44, 10, 0};
 constexpr CombinedScore PIECE_SQUARE_BONUS[PIECES / 2][RANKS][FILES / 2] = 
 {
     { //Pawns handled separately
@@ -188,6 +248,9 @@ class Evaluation {
         // Board of the Evaluation we are evaluating
         const ChessBoard& board;
 
+        // Holds all the passed pawns for a given side
+        Bitboard passedPawns[COLOURS];
+
         // All the attacks by a Color and a PieceType
         Bitboard attacksBy[COLOURS][PIECE_TYPES];
 
@@ -197,9 +260,37 @@ class Evaluation {
         // Safe squares
         Bitboard mobilityArea[COLOURS];
 
+        // Total mobility 
+        CombinedScore totalMobility[COLOURS];
+
+        // Squares around a king
+        Bitboard kingRing[COLOURS];
+
+        // Number of pieces attacking the enemy king ring
+        int attackingEnemyKingRingCount[COLOURS];
+
+        // The sum of the piece weights to those pieces which are the ones attacking the enemy king ring (helper to attackingEnemyKingRingCount)
+        int attackingEnemyKingRingPieceWeight[COLOURS];
+
+        // Number of squares we are attacking directly around the king (not including the king square)
+        int attackedSquaresAroundEnemyKing[COLOURS];
+
+        
+
         void initEvaluation();
+
+        CombinedScore evaluateImbalance();
         CombinedScore evaluatePiece(PieceType pt, Color c);
-        CombinedScore evaluatePawn(Color c);
+        CombinedScore evaluatePawns(Color c);
+        CombinedScore evaluatePassedPawns(Color c);
+        CombinedScore evaluateSpace(Color c);
+        CombinedScore evaluateThreats(Color c);
+        CombinedScore evaluatePawnShelter(Color c, Square kingSq);
+        CombinedScore evaluateKingSafety(Color c);
+        CombinedScore evaluateKing(Color c);
+        CombinedScore evaluateInitiative(CombinedScore cs);
+
+        ExactScore evaluateImbalanceHelper(Color c, int pieceCount[COLOURS][ALL_PIECE_TYPES]);
         int gamePhase();
 
 };

@@ -5,6 +5,7 @@
 #include "utility.hpp"
 #include "moves.hpp"
 #include "zobrist.hpp"
+#include "evaluation.hpp"
 
 int ChebyshevDistance[NUMBER_OF_SQUARES][NUMBER_OF_SQUARES];
 
@@ -25,6 +26,17 @@ bool ChessBoard::isSquareAttacked(Square sq, Color attacked) const{
     if (rookAttacks(gameBoard, sq)   & (pieces[BLACK_ROOK   - (6 * attacked)] | pieces[BLACK_QUEEN   - (6 * attacked)])) return true;
 
     return false;
+}
+
+Bitboard ChessBoard::attackersToSquare(Square sq, Bitboard occupied) {
+
+    return pawnAttacks[WHITE][sq] &  pieces[BLACK_PAWN  ]
+         | pawnAttacks[BLACK][sq] &  pieces[WHITE_PAWN  ]
+         | knightAttacks     [sq] & (pieces[WHITE_KNIGHT] | pieces[BLACK_KNIGHT]) 
+         | kingAttacks       [sq] & (pieces[WHITE_KING  ] | pieces[BLACK_KING  ]) 
+         | bishopAttacks(occupied, sq) & (pieces[WHITE_BISHOP] | pieces[BLACK_BISHOP] | pieces[WHITE_QUEEN] | pieces[BLACK_QUEEN])
+         | rookAttacks  (occupied, sq) & (pieces[WHITE_ROOK  ] | pieces[BLACK_ROOK  ] | pieces[WHITE_QUEEN] | pieces[BLACK_QUEEN]);
+
 }
 
 void ChessBoard::makeMove(const Move& move) {
@@ -69,6 +81,7 @@ void ChessBoard::makeMove(const Move& move) {
         emptySquares ^= fromToBB;
         pieceSquare[fromPiece][findPieceSquareIndex(fromPiece, static_cast<Square>(fromSquare))] = static_cast<Square>(toSquare);
         pieceBoard[toSquare] = fromPiece;
+        pieceSquareScore += pieceSquareTable[fromPiece][toSquare] - pieceSquareTable[fromPiece][fromSquare];
         positionKey ^= zobristPieceSquare[fromPiece][fromSquare] ^ zobristPieceSquare[fromPiece][toSquare];
 
         if ((fromPiece == WHITE_PAWN) || (fromPiece == BLACK_PAWN)) halfmoves = 0;
@@ -92,6 +105,7 @@ void ChessBoard::makeMove(const Move& move) {
             emptySquares ^= fromToRookBB;
             pieceSquare[fromRook][findPieceSquareIndex(fromRook, static_cast<Square>(fromRookSquare))] = static_cast<Square>(toRookSquare);
             pieceBoard[toRookSquare] = fromRook;
+            pieceSquareScore += pieceSquareTable[fromRook][toRookSquare] - pieceSquareTable[fromRook][fromRookSquare];
             positionKey ^= zobristPieceSquare[fromRook][fromRookSquare] ^ zobristPieceSquare[fromRook][toRookSquare];
             
 
@@ -110,6 +124,7 @@ void ChessBoard::makeMove(const Move& move) {
             emptySquares ^= fromToRookBB;
             pieceSquare[fromRook][findPieceSquareIndex(fromRook, static_cast<Square>(fromRookSquare))] = static_cast<Square>(toRookSquare);
             pieceBoard[toRookSquare] = fromRook;
+            pieceSquareScore += pieceSquareTable[fromRook][toRookSquare] - pieceSquareTable[fromRook][fromRookSquare];
             positionKey ^= zobristPieceSquare[fromRook][fromRookSquare] ^ zobristPieceSquare[fromRook][toRookSquare];
 
         }
@@ -133,8 +148,12 @@ void ChessBoard::makeMove(const Move& move) {
         pieceSquare[toPiece][findPieceSquareIndex(toPiece, static_cast<Square>(toSquare))] = pieceSquare[toPiece][pieceCount[toPiece] - 1];
         pieceCount[toPiece]--;
         pieceBoard[toSquare] = fromPiece;
+        pieceSquareScore += pieceSquareTable[fromPiece][toSquare] - pieceSquareTable[fromPiece][fromSquare] - pieceSquareTable[toPiece][toSquare];
         positionKey ^= zobristPieceSquare[fromPiece][fromSquare] ^ zobristPieceSquare[fromPiece][toSquare] ^ zobristPieceSquare[toPiece][toSquare];
-        halfmoves = 0; 
+        halfmoves = 0;
+
+        if ((toPiece > WHITE_PAWN && toPiece < WHITE_KING) || (toPiece > BLACK_PAWN && toPiece < BLACK_KING))
+            nonPawnMaterial[~sideToPlay] -= PIECE_VALUE[MIDDLEGAME][toPiece]; 
 
     } else if (moveType == EN_PASSANT_CAPTURE) {
 
@@ -161,6 +180,7 @@ void ChessBoard::makeMove(const Move& move) {
         pieceSquare[toPiece][findPieceSquareIndex(toPiece, static_cast<Square>(toSquare - pawnPush))] = pieceSquare[toPiece][pieceCount[toPiece] - 1];
         pieceCount[toPiece]--;
         pieceBoard[toSquare] = fromPiece;
+        pieceSquareScore += pieceSquareTable[fromPiece][toSquare] - pieceSquareTable[fromPiece][fromSquare] - pieceSquareTable[toPiece][toSquare - pawnPush];
         positionKey ^= zobristPieceSquare[fromPiece][fromSquare] ^ zobristPieceSquare[fromPiece][toSquare] ^ zobristPieceSquare[toPiece][toSquare - pawnPush];
         halfmoves = 0; 
 
@@ -195,6 +215,8 @@ void ChessBoard::makeMove(const Move& move) {
         pieceSquare[promotionPiece][pieceCount[promotionPiece] - 1] = static_cast<Square>(toSquare); 
         
         pieceBoard[toSquare] = promotionPiece;
+        nonPawnMaterial[sideToPlay] += PIECE_VALUE[MIDDLEGAME][promotionPiece];
+        pieceSquareScore += pieceSquareTable[promotionPiece][toSquare] - pieceSquareTable[fromPiece][fromSquare];
         positionKey ^= zobristPieceSquare[fromPiece][fromSquare] ^ zobristPieceSquare[promotionPiece][toSquare];
         halfmoves = 0;
 
@@ -234,13 +256,17 @@ void ChessBoard::makeMove(const Move& move) {
         pieceCount[promotionPiece]++;
         pieceSquare[promotionPiece][pieceCount[promotionPiece] - 1] = static_cast<Square>(toSquare);
 
-        //Delete enemy pawn
+        //Delete enemy piece
         pieceSquare[toPiece][findPieceSquareIndex(toPiece, static_cast<Square>(toSquare))] = pieceSquare[toPiece][pieceCount[toPiece] - 1];
         pieceCount[toPiece]--; 
         
         pieceBoard[toSquare] = promotionPiece;
+        pieceSquareScore += pieceSquareTable[promotionPiece][toSquare] - pieceSquareTable[fromPiece][fromSquare] - pieceSquareTable[toPiece][toSquare];
         positionKey ^= zobristPieceSquare[fromPiece][fromSquare] ^ zobristPieceSquare[toPiece][toSquare] ^ zobristPieceSquare[promotionPiece][toSquare];
         halfmoves = 0;
+
+        nonPawnMaterial[sideToPlay] += PIECE_VALUE[MIDDLEGAME][promotionPiece];
+        nonPawnMaterial[~sideToPlay] -= PIECE_VALUE[MIDDLEGAME][toPiece];       
 
     }
 
@@ -297,6 +323,7 @@ void ChessBoard::undoMove() {
         emptySquares ^= fromToBB;
         pieceSquare[toPiece][findPieceSquareIndex(toPiece, static_cast<Square>(toSquare))] = static_cast<Square>(fromSquare);
         pieceBoard[fromSquare] = toPiece;
+        pieceSquareScore += pieceSquareTable[toPiece][fromSquare] - pieceSquareTable[toPiece][toSquare];
         positionKey ^= zobristPieceSquare[toPiece][fromSquare] ^ zobristPieceSquare[toPiece][toSquare]; 
 
         Piece toRook;
@@ -317,6 +344,7 @@ void ChessBoard::undoMove() {
             emptySquares ^= fromToRookBB;
             pieceSquare[toRook][findPieceSquareIndex(toRook, static_cast<Square>(toRookSquare))] = static_cast<Square>(fromRookSquare);
             pieceBoard[fromRookSquare] = toRook;
+            pieceSquareScore += pieceSquareTable[toRook][fromRookSquare] - pieceSquareTable[toRook][toRookSquare];
             positionKey ^= zobristPieceSquare[toRook][fromRookSquare] ^ zobristPieceSquare[toRook][toRookSquare];
 
         } else if (moveType == QUEENSIDE_CASTLE) {
@@ -334,6 +362,7 @@ void ChessBoard::undoMove() {
             emptySquares ^= fromToRookBB;
             pieceSquare[toRook][findPieceSquareIndex(toRook, static_cast<Square>(toRookSquare))] = static_cast<Square>(fromRookSquare);
             pieceBoard[fromRookSquare] = toRook;
+            pieceSquareScore += pieceSquareTable[toRook][fromRookSquare] - pieceSquareTable[toRook][toRookSquare];
             positionKey ^= zobristPieceSquare[toRook][fromRookSquare] ^ zobristPieceSquare[toRook][toRookSquare];
 
         }
@@ -358,8 +387,11 @@ void ChessBoard::undoMove() {
         
         pieceBoard[fromSquare] = toPiece;
         pieceBoard[toSquare] = capturedPiece;
-
+        pieceSquareScore += pieceSquareTable[toPiece][fromSquare] - pieceSquareTable[toPiece][toSquare] + pieceSquareTable[capturedPiece][toSquare];
         positionKey ^= zobristPieceSquare[toPiece][fromSquare] ^ zobristPieceSquare[toPiece][toSquare] ^ zobristPieceSquare[capturedPiece][toSquare];
+
+        if ((capturedPiece > WHITE_PAWN && capturedPiece < WHITE_KING) || (capturedPiece > BLACK_PAWN && capturedPiece < BLACK_KING))
+            nonPawnMaterial[~sideToPlay] += PIECE_VALUE[MIDDLEGAME][capturedPiece]; 
 
     } else if (moveType == EN_PASSANT_CAPTURE) {
         Piece capturedPiece;
@@ -386,7 +418,7 @@ void ChessBoard::undoMove() {
         
         pieceBoard[fromSquare] = toPiece;
         pieceBoard[toSquare - pawnPush] = capturedPiece;
-
+        pieceSquareScore += pieceSquareTable[toPiece][fromSquare] - pieceSquareTable[toPiece][toSquare] + pieceSquareTable[capturedPiece][toSquare - pawnPush];
         positionKey ^= zobristPieceSquare[toPiece][fromSquare] ^ zobristPieceSquare[toPiece][toSquare] ^ zobristPieceSquare[capturedPiece][toSquare - pawnPush];
 
     } else if ((moveType == KNIGHT_PROMOTION) || (moveType == BISHOP_PROMOTION) 
@@ -414,7 +446,8 @@ void ChessBoard::undoMove() {
         pieceCount[toPiece]--; 
         
         pieceBoard[fromSquare] = fromPiece;
-
+        nonPawnMaterial[sideToPlay] -= PIECE_VALUE[MIDDLEGAME][toPiece];
+        pieceSquareScore += pieceSquareTable[fromPiece][fromSquare] - pieceSquareTable[toPiece][toSquare];
         positionKey ^= zobristPieceSquare[fromPiece][fromSquare] ^ zobristPieceSquare[toPiece][toSquare];
 
     } else if ((moveType == KNIGHT_PROMOTION_CAPTURE) || (moveType == BISHOP_PROMOTION_CAPTURE) 
@@ -445,21 +478,26 @@ void ChessBoard::undoMove() {
         pieceSquare[toPiece][findPieceSquareIndex(toPiece, static_cast<Square>(toSquare))] = pieceSquare[toPiece][pieceCount[toPiece] - 1];
         pieceCount[toPiece]--;
 
-        //Add enemy pawn
+        //Add captured piece
         pieceCount[capturedPiece]++;
         pieceSquare[capturedPiece][pieceCount[capturedPiece] - 1] = static_cast<Square>(toSquare);
         
         pieceBoard[toSquare]   = capturedPiece;
         pieceBoard[fromSquare] = fromPiece;
-
+        pieceSquareScore += pieceSquareTable[fromPiece][fromSquare] - pieceSquareTable[toPiece][toSquare] + pieceSquareTable[capturedPiece][toSquare];
         positionKey ^= zobristPieceSquare[fromPiece][fromSquare] ^ zobristPieceSquare[toPiece][toSquare] ^ zobristPieceSquare[capturedPiece][toSquare];
+
+        nonPawnMaterial[sideToPlay] -= PIECE_VALUE[MIDDLEGAME][toPiece];
+        nonPawnMaterial[~sideToPlay] += PIECE_VALUE[MIDDLEGAME][capturedPiece];
 
     }
 }
 
-Bitboard ChessBoard::blockers(Square sq, Bitboard sliders) const{
+Bitboard ChessBoard::blockers(Square sq, Bitboard sliders, Bitboard& pinners) const{
 
     Bitboard blockers = 0;
+    pinners = 0;
+
     Bitboard bishops  = pieces[WHITE_BISHOP] | pieces[BLACK_BISHOP];
     Bitboard rooks    = pieces[WHITE_ROOK]   | pieces[BLACK_ROOK];
     Bitboard queens   = pieces[WHITE_QUEEN]  | pieces[BLACK_QUEEN];
@@ -477,8 +515,12 @@ Bitboard ChessBoard::blockers(Square sq, Bitboard sliders) const{
         occupiedInBetween = inBetween[sq][sliderSq] & occupied;
 
         // sq is blocked only if there is exactly 1 piece in between the attacking sliding piece and the sq
-        if ((occupiedInBetween > 0) && (occupiedInBetween & (occupiedInBetween - 1) == 0))
+        if ((occupiedInBetween > 0) && (occupiedInBetween & (occupiedInBetween - 1) == 0)) {
+            
             blockers |= occupiedInBetween;
+            if ((occupiedInBetween & piecesOnSide[colorOfPiece(pieceBoard[sq])]) > 0) 
+                pinners |= squareToBitboard(sliderSq);
+        }
     }
 
     return blockers;
@@ -630,11 +672,16 @@ void ChessBoard::parseCastlingRights(char c) {
 
 void ChessBoard::makePiece(Bitboard* init, Piece p) {
 
+    Color c = ((p >= WHITE_PAWN) && (p <= WHITE_KING)) ? WHITE : BLACK;
     Square sq = squareOfLS1B(*init);
     pieces[p] |= *init;
     pieceSquare[p][pieceCount[p]++] = sq;
     pieceBoard[sq] = p;
-    positionKey ^= zobristPieceSquare[p][sq]; 
+    pieceSquareScore += pieceSquareTable[p][sq];
+    positionKey ^= zobristPieceSquare[p][sq];
+
+    if ((p > WHITE_PAWN && p < WHITE_KING) || (p > BLACK_PAWN && p < BLACK_KING))
+        nonPawnMaterial[c] +=  PIECE_VALUE[MIDDLEGAME][p];
 
 }
 
@@ -695,6 +742,8 @@ void ChessBoard::clearBoard() {
     sideToPlay = WHITE;
     enPassant = NO_SQUARE;
     castlingRights = 0;
+    std::fill(nonPawnMaterial, nonPawnMaterial + COLOURS, 0);
+    pieceSquareScore = 0;
     ply = 0; 
     halfmoves = 0;
     //std::fill(previousGameStates, previousGameStates + 256, 0);
