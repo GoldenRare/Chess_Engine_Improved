@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <string>
+#include <cmath>
 #include "search.hpp"
 #include "utility.hpp"
 #include "board.hpp"
@@ -13,6 +14,27 @@
 #include "moves.hpp"
 
 #include <cassert>
+
+int REDUCTIONS[256];
+void initSearch() {
+
+    initReductions();
+
+}
+
+void initReductions() {
+
+    REDUCTIONS[0] = 0;
+    for (int i = 1; i < 256; i++)
+        REDUCTIONS[i] = int(24.8 * std::log(i));
+
+}
+
+int reductions(int depth, int numberOfMoves) {
+
+    int reductions = REDUCTIONS[depth] * REDUCTIONS[numberOfMoves];
+    return (reductions + 511) / 1024;
+}
 
 //("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") - Position 1 (Start Position): Depth 6: 119060324
 //("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -") - Position 2: Depth 5: 193690690
@@ -72,7 +94,7 @@ void divide(ChessBoard& board, int depth) {
     std::cout << "Total: " << total;
 }
 
-ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isPVNode, int ply) {
+ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isPVNode, bool isCutNode, int ply) {
 
     const bool isRootNode = board.ply == ply;
 
@@ -101,6 +123,7 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
     bool hasEvaluation;
     PositionEvaluation* pe = TT.probeTT(board.positionKey, hasEvaluation);
     unsigned int hashMove = 0;
+    Move savedHashMove;
     ExactScore nodeScoreTT = NO_VALUE;
     bool isPVNodeTT = isPVNode;
 
@@ -121,6 +144,7 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
         nodeScoreTT = adjustNodeScoreFromTT(pe->nodeScore, board.ply); 
         hashMove = (pe->move == NO_MOVE) ? 0 : pe->move;
     }
+    savedHashMove.move = hashMove;
     //////////////////////////////////////////////////////////
 
     /////////////// Erase Killers of Next Ply ////////////////
@@ -174,6 +198,8 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
     Move* movesListStart = movesList;
     Move* movesListEnd = generateAllPseudoMoves(board, movesListStart);
 
+    bool givesCheck, captureOrPromotionMove, doFullDepthSearch;
+    bool moveCountPruning = false;
     int nodeScore = -INFINITE;
     int legalMoves = 0;
     int bestNodeScore = -INFINITE;
@@ -183,27 +209,70 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
     findBestMove(movesListStart, movesListEnd, hashMove);
     while (movesListStart < movesListEnd) {
 
+        legalMoves++;
+        givesCheck = board.givesCheck(*movesListStart);
+        captureOrPromotionMove = isCapture(*movesListStart) || isPromotion(*movesListStart);
+        ////////////// Pruning Before Making Move //////////////
+        if (!isRootNode && board.nonPawnMaterial[board.sideToPlay] > 0 && bestNodeScore > GUARANTEE_CHECKMATED) {
+
+            moveCountPruning = legalMoves >= ((5 + depth * depth) / 2 - 1);
+            if (!givesCheck && !captureOrPromotionMove) {
+                
+                int lateMoveReductionDepth = std::max(depth - 1 - reductions(depth, legalMoves), 0);
+                if (!SEE(board, *movesListStart, -(32 - std::min(lateMoveReductionDepth, 18)) * lateMoveReductionDepth * lateMoveReductionDepth)) {
+                    movesListStart++;
+                    findBestMove(movesListStart, movesListEnd, hashMove);
+                    continue;
+                }
+            } else if (!SEE(board, *movesListStart, -194 * depth)) {
+                movesListStart++;
+                findBestMove(movesListStart, movesListEnd, hashMove);
+                continue;
+            }
+        }
+        ////////////////////////////////////////////////////////
+
         board.makeMove(*movesListStart);
         
         //If move is illegal, don't evaluate
         if (board.isSquareAttacked(board.pieceSquare[king][0], kingInCheck)) {
 
+            legalMoves--;
             board.undoMove();
             movesListStart++;
             findBestMove(movesListStart, movesListEnd, hashMove);
             continue;
 
         }
-        legalMoves++;
+        
+        ////////////// Reduced Depth Search and Principal Variation Search ////////////////
+        if (   depth >= 3 
+            && legalMoves > 1 + (isRootNode ? 1 : 0) + ((isRootNode && bestNodeScore < alpha) ? 1 : 0)
+            && !isRootNode 
+            && (!captureOrPromotionMove || moveCountPruning || isCutNode)) {
 
-        ///////////// Principal Variation Search ///////////////////
-        if ((isPVNode && legalMoves > 1) || !isPVNode) {
-            nodeScore = -alphaBeta(board, -alpha - 1, -alpha, depth - 1, false, ply + 1); //Search with null window
-        }
+            int reduction = reductions(depth, legalMoves);
+
+            if (isPVNodeTT) reduction -= 2;
+            if (!captureOrPromotionMove) {
+
+                if (isCapture(savedHashMove)) reduction++;
+                if (isCutNode) reduction += 2;
+
+            } else if (depth < 8 && legalMoves > 2) reduction++;
+
+            int reducedDepth = keepInRange(1, depth - 1, depth - reduction);
+            nodeScore = -alphaBeta(board, -alpha - 1, -alpha, reducedDepth, false, true, ply + 1); //Search with null window
+            doFullDepthSearch = (nodeScore > alpha && reducedDepth != depth - 1);
+
+        } else doFullDepthSearch = !isPVNode || legalMoves > 1;
+
+        if (doFullDepthSearch) 
+            nodeScore = -alphaBeta(board, -alpha - 1, -alpha, depth - 1, false, !isCutNode, ply + 1); //Search with null window
 
         if (isPVNode && ((legalMoves == 1) || ((nodeScore > alpha) && (nodeScore < beta)))) 
-            nodeScore = -alphaBeta(board, -beta, -alpha, depth - 1, true, ply + 1);
-        ////////////////////////////////////////////////////////////
+            nodeScore = -alphaBeta(board, -beta, -alpha, depth - 1, true, false, ply + 1);
+        /////////////////////////////////////////////////////////////////////////////////////
 
         board.undoMove();
 /*
@@ -275,7 +344,7 @@ void iterativeDeepening(ChessBoard& board, int maxDepth) {
 
     TT.updateAge();
     for (int depth = 1; depth <= maxDepth; depth++) {
-        evaluation = alphaBeta(board, alpha, beta, depth, true, board.ply);
+        evaluation = alphaBeta(board, alpha, beta, depth, true, board.ply, false);
 
         //Fails Low
         if (evaluation <= alpha) {
@@ -490,7 +559,6 @@ bool isRepetition(ChessBoard& board) {
     return false;
 }
 
-// Move must be a capture move
 bool SEE(ChessBoard& board, Move move, int materialValue) {
 
     if (!isSEECapture(move)) {

@@ -15,7 +15,7 @@ ChessBoard::ChessBoard(std::string fen) {
 }
 
 //Works by putting a super-piece on the sq, and seeing if the correct opposite color pieces resides on
-//the attack squares of the super-piece 9024791440787456(BLACK PAWNS)
+//the attack squares of the super-piece
 bool ChessBoard::isSquareAttacked(Square sq, Color attacked) const{
 
     if (pawnAttacks[attacked][sq] & pieces[BLACK_PAWN   - (6 * attacked)]) return true;
@@ -524,6 +524,16 @@ Bitboard ChessBoard::blockers(Square sq, Bitboard sliders, Bitboard& pinners) co
     }
 
     return blockers;
+}
+
+bool ChessBoard::givesCheck(const Move& move) {
+
+    bool result = false;
+    makeMove(move);
+    if (isSquareAttacked(pieceSquare[sideToPlay == WHITE ? WHITE_KING : BLACK_KING][0], sideToPlay))
+        result = true;
+    undoMove();
+    return result;
 }
 
 void ChessBoard::parseFEN(std::string fen) {

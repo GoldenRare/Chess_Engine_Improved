@@ -40,6 +40,7 @@ class ChessBoard {
         void makeMove(const Move& move);
         void undoMove();
         Bitboard blockers(Square sq, Bitboard sliders, Bitboard& pinners) const; //Returns a bitboard of pieces that are blocking a square from being attacked 
+        bool givesCheck(const Move& move); // Returns whether or not a given move will give the opponent a check
 
     private:
 

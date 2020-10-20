@@ -85,7 +85,7 @@ void positionCommand(std::istringstream& iss, ChessBoard& board) {
 }
 
 void goCommand(ChessBoard& board) {
-    iterativeDeepening(board, 8);
+    iterativeDeepening(board, 11);
 }
 
 void commandsLoop() {

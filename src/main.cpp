@@ -25,11 +25,12 @@ int main() {
     initMoves();
     initEvaluation();
     initZobrist();
+    initSearch();
     commandsLoop();
     
     //q2k2q1/2nqn2b/1n1P1n1b/2rnr2Q/1NQ1QN1Q/3Q3B/2RQR2B/Q2K2Q1 w - - 0 1
-    //ChessBoard board;  
-    //iterativeDeepening(board, 6);
+    //ChessBoard board("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1");  
+    //iterativeDeepening(board, 10);
 
 /*
     ChessBoard board("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");

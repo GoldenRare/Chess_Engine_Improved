@@ -200,6 +200,23 @@ inline bool isSEECapture(Move m) {
     return false;
 }
 
+//Returns if a move is a capture
+inline bool isCapture(Move m) {
+    MoveType moveType = typeOfMove(m);
+    if ((moveType == CAPTURE) || (moveType == EN_PASSANT_CAPTURE) || (moveType == KNIGHT_PROMOTION_CAPTURE)
+     || (moveType == BISHOP_PROMOTION_CAPTURE) || (moveType == ROOK_PROMOTION_CAPTURE) || (moveType == QUEEN_PROMOTION_CAPTURE)) return true;
+    return false;
+}
+
+//Returns if a move is a promotion
+inline bool isPromotion(Move m) {
+    MoveType moveType = typeOfMove(m);
+    if ((moveType == KNIGHT_PROMOTION) || (moveType == BISHOP_PROMOTION) || (moveType == ROOK_PROMOTION) || (moveType == QUEEN_PROMOTION) || 
+        (moveType == KNIGHT_PROMOTION_CAPTURE) || (moveType == BISHOP_PROMOTION_CAPTURE) || (moveType == ROOK_PROMOTION_CAPTURE) || 
+        (moveType == QUEEN_PROMOTION_CAPTURE)) return true;
+    return false;
+}
+
 //Returns the square as a Bitboard
 inline Bitboard squareToBitboard(Square sq) {
     return 1ULL << sq;
