@@ -181,7 +181,7 @@ CombinedScore Evaluation::evaluatePiece(PieceType pt, Color c) {
 
                 Bitboard blockedPawns = pawnsAbleToPush(thesePawns, board.occupiedSquares, c);
                 cs -= PAWNS_BLOCKING_BISHOP_PENALTY * (populationCount(blockedPawns & CENTER_FILES) + 1) * 
-                      populationCount(thesePawns & ((sqBB & DARK_SQUARES) > 0) ? DARK_SQUARES : LIGHT_SQUARES);
+                      populationCount(thesePawns & ((sqBB & DARK_SQUARES) ? DARK_SQUARES : LIGHT_SQUARES));
 
                 if (hasMoreThanOneBit(bishopAttacks(thesePawns | otherPawns, sq) & CENTER_SQUARES)) 
                     cs += BISHOP_CONTROL_OF_CENTER_BONUS;
