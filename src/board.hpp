@@ -11,7 +11,6 @@ class ChessBoard {
 
     public:
 
-        PositionKey positionKey; // 64-Bit number to uniquely identify any given chess position (if the position is repeated, the same key will be produced)
         Piece pieceBoard[SQUARES]; // Indexed by square and returns the piece on that square
         Bitboard pieces[PIECES]; 
         Bitboard piecesOnSide[COLOURS];
@@ -44,7 +43,13 @@ class ChessBoard {
         bool advancedPawnPush(const Move& move); // Returns whether or not a pawn is being pushed deep into enemy territory (WHITE: > RANK_5, BLACK: < RANK_4)
         int endgameValueOfPiece(const Move& move); // Returns the endgame value of a piece on the to square
 
+        PositionKey getPositionKey() const;
+
     private:
+
+        /* ATTRIBUTES */
+        PositionKey positionKey; // 64-Bit number to uniquely identify any given chess position (if the position is repeated, the same key will be produced)
+        /*            */
 
         void piecePlacement(Bitboard* init, char piece);
         void makePiece(Bitboard* init, Piece p);
@@ -61,5 +66,9 @@ void initBoard();
 void printBitboard(Bitboard b);
 bool isValidSquare(Square s);
 int populationCount(Bitboard b);
+
+inline PositionKey ChessBoard::getPositionKey() const {
+    return positionKey;
+}
 
 #endif

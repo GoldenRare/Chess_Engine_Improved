@@ -54,17 +54,17 @@ Bitboard perft(ChessBoard& board, int depth) {
     Color kingInCheck = board.sideToPlay;
     Piece king        = (kingInCheck == WHITE) ? WHITE_KING : BLACK_KING;
 
-    PositionKey before = board.positionKey;
+    PositionKey before = board.getPositionKey();
     while (movesListStart < movesListEnd) {
 
         board.makeMove(*movesListStart);
-        assert(before != board.positionKey);
+        assert(before != board.getPositionKey());
         
         if (!board.isSquareAttacked(board.pieceSquare[king][0], kingInCheck)){
             nodes += perft(board, depth - 1);
         }
         board.undoMove();
-        assert(before == board.positionKey);
+        assert(before == board.getPositionKey());
         movesListStart++;
     }
     return nodes;
@@ -121,7 +121,7 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
 
     ///////////////// Transposition Table ///////////////////
     bool hasEvaluation;
-    PositionEvaluation* pe = TT.probeTT(board.positionKey, hasEvaluation);
+    PositionEvaluation* pe = TT.probeTT(board.getPositionKey(), hasEvaluation);
     unsigned int hashMove = 0;
     Move savedHashMove;
     ExactScore nodeScoreTT = NO_VALUE;
@@ -175,7 +175,7 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
 
         Evaluation eval(board);
         staticEvaluationAdjusted = staticEvaluation = eval.evaluatePosition();
-        pe->savePositionEvaluation(board.positionKey, NO_MOVE, 0, isPVNodeTT, NO_BOUND, staticEvaluation, NO_VALUE);
+        pe->savePositionEvaluation(board.getPositionKey(), NO_MOVE, 0, isPVNodeTT, NO_BOUND, staticEvaluation, NO_VALUE);
 
     }
     //////////////////////////////////////////////////////////
@@ -313,7 +313,7 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
     }
     ////////////////////////////////////////////////////////
 
-    pe->savePositionEvaluation(board.positionKey, bestMove, depth, isPVNodeTT, 
+    pe->savePositionEvaluation(board.getPositionKey(), bestMove, depth, isPVNodeTT, 
                                bestNodeScore >= beta ? LOWER_BOUND : isPVNode && (bestMove != NO_MOVE) ? EXACT_BOUND : UPPER_BOUND, 
                                staticEvaluation, adjustNodeScoreToTT(bestNodeScore, board.ply));
     return bestNodeScore;
@@ -363,7 +363,7 @@ void iterativeDeepening(ChessBoard& board, int maxDepth) {
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
 
     bool hasEvaluation = false;
-    PositionEvaluation* pe = TT.probeTT(board.positionKey, hasEvaluation);
+    PositionEvaluation* pe = TT.probeTT(board.getPositionKey(), hasEvaluation);
     std::string promotion = "";
     Move bestMoveInfo;
     MoveType moveType;
@@ -407,7 +407,7 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta, bool isPVNod
 
     ///////////////// Transposition Table ///////////////////
     bool hasEvaluation;
-    PositionEvaluation* pe = TT.probeTT(board.positionKey, hasEvaluation);
+    PositionEvaluation* pe = TT.probeTT(board.getPositionKey(), hasEvaluation);
     unsigned int hashMove = 0;
     ExactScore nodeScoreTT = NO_VALUE;
     bool isPVNodeTT = false;
@@ -461,7 +461,7 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta, bool isPVNod
 
         if (bestNodeScore >= beta) {
 
-            pe->savePositionEvaluation(board.positionKey, NO_MOVE, 0, isPVNodeTT, LOWER_BOUND, staticEvaluation, adjustNodeScoreToTT(bestNodeScore, board.ply));
+            pe->savePositionEvaluation(board.getPositionKey(), NO_MOVE, 0, isPVNodeTT, LOWER_BOUND, staticEvaluation, adjustNodeScoreToTT(bestNodeScore, board.ply));
             return bestNodeScore;
         }
 
@@ -563,7 +563,7 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta, bool isPVNod
         else alpha = STALEMATE;
     }
 
-    pe->savePositionEvaluation(board.positionKey, bestMove, 0, isPVNodeTT, 
+    pe->savePositionEvaluation(board.getPositionKey(), bestMove, 0, isPVNodeTT, 
                                bestNodeScore >= beta ? LOWER_BOUND : isPVNode && (bestNodeScore > oldAlpha) ? EXACT_BOUND : UPPER_BOUND, 
                                staticEvaluation, adjustNodeScoreToTT(bestNodeScore, board.ply));
     return bestNodeScore;
@@ -576,7 +576,7 @@ bool isRepetition(ChessBoard& board) {
     //int currentPosition = board.previousGameStatesCount - 1;
     int howFarBack = board.previousGameStatesCount - board.halfmoves;
     for (int i = board.previousGameStatesCount - 4; (i >= 0) && (i >= howFarBack); i -= 2) 
-        if (board.positionKey == board.previousGameStates[i].key) return true;
+        if (board.getPositionKey() == board.previousGameStates[i].key) return true;
 
     return false;
 }
