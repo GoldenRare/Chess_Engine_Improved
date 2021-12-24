@@ -344,7 +344,7 @@ void iterativeDeepening(ChessBoard& board, int maxDepth) {
             // In the event of a fail high, we search at a shallower depth with a greater window since move ordering 
             // will have been messed up due to the fail high. 
             int adjustedDepth = std::max(1, depth - failedHighCount); 
-            evaluation = alphaBeta(board, alpha, beta, adjustedDepth, true, board.ply, false);
+            evaluation = alphaBeta(board, alpha, beta, adjustedDepth, true, false, board.ply);
 
             // Fails Low
             if (evaluation <= alpha) {
