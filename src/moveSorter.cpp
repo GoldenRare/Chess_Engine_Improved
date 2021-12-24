@@ -42,7 +42,7 @@ void assignMoveScores(Move* movesListStart, Move* movesListEnd, ChessBoard& boar
         //Black gets penalized more due to the higher index in enum Piece{}
         //Captures scored based on MVV/LVA (Most Valuable Victim/Least Valuable Attacker)
         if (moveType == CAPTURE) 
-            movesListStart->score = PIECE_VALUE[MIDDLEGAME][board.pieceBoard[getTo(*movesListStart)]] - board.pieceBoard[getFrom(*movesListStart)];
+            movesListStart->score = PIECE_VALUE[MIDDLEGAME][board.getPiece(Square(getTo(*movesListStart)))] - board.getPiece(Square(getFrom(*movesListStart)));
 
         else if (moveType == EN_PASSANT_CAPTURE)
             movesListStart->score = PIECE_VALUE[MIDDLEGAME][WHITE_PAWN] - (board.sideToPlay == WHITE) ? WHITE_PAWN : BLACK_PAWN;
@@ -55,7 +55,7 @@ void assignMoveScores(Move* movesListStart, Move* movesListEnd, ChessBoard& boar
                         : (moveType == ROOK_PROMOTION_CAPTURE  ) ? WHITE_ROOK
                         :                                          WHITE_QUEEN;
 
-            movesListStart->score = PIECE_VALUE[MIDDLEGAME][board.pieceBoard[getTo(*movesListStart)]] - (board.sideToPlay == WHITE) ? WHITE_PAWN : BLACK_PAWN
+            movesListStart->score = PIECE_VALUE[MIDDLEGAME][board.getPiece(Square(getTo(*movesListStart)))] - (board.sideToPlay == WHITE) ? WHITE_PAWN : BLACK_PAWN
                                   + PIECE_VALUE[MIDDLEGAME][piece] - PIECE_VALUE[MIDDLEGAME][WHITE_PAWN];
 
         } 

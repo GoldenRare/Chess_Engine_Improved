@@ -390,11 +390,11 @@ CombinedScore Evaluation::evaluateThreats(Color c) {
 
         temp = (defendedEnemies | weakEnemies) & (attacksBy[c][KNIGHT] | attacksBy[c][BISHOP]);
         while (temp > 0)
-            cs += THREATENED_BY_MINOR_PIECE_BONUS[pieceToPieceType(board.pieceBoard[squareOfLS1B(&temp)])];
+            cs += THREATENED_BY_MINOR_PIECE_BONUS[pieceToPieceType(board.getPiece(squareOfLS1B(&temp)))];
         
         temp = weakEnemies & attacksBy[c][ROOK];
         while (temp > 0)
-            cs += THREATENED_BY_ROOK_BONUS[pieceToPieceType(board.pieceBoard[squareOfLS1B(&temp)])];
+            cs += THREATENED_BY_ROOK_BONUS[pieceToPieceType(board.getPiece(squareOfLS1B(&temp)))];
 
         if ((weakEnemies & attacksBy[c][KING]) > 0)
             cs += THREATENED_BY_KING_BONUS;

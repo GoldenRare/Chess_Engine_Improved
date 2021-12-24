@@ -590,10 +590,10 @@ bool SEE(ChessBoard& board, Move move, int materialValue) {
     Square fromSquare = Square(getFrom(move));
     Square toSquare   = Square(getTo(move));
 
-    int swapOffValue = PIECE_VALUE[MIDDLEGAME][board.pieceBoard[toSquare]] - materialValue;
+    int swapOffValue = PIECE_VALUE[MIDDLEGAME][board.getPiece(toSquare)] - materialValue;
     if (swapOffValue < 0) return false;
 
-    swapOffValue = PIECE_VALUE[MIDDLEGAME][board.pieceBoard[fromSquare]] - swapOffValue;
+    swapOffValue = PIECE_VALUE[MIDDLEGAME][board.getPiece(fromSquare)] - swapOffValue;
     if (swapOffValue <= 0) return true;
 
     Bitboard kingBlockers[COLOURS];

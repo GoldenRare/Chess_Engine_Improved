@@ -11,7 +11,6 @@ class ChessBoard {
 
     public:
 
-        Piece pieceBoard[SQUARES]; // Indexed by square and returns the piece on that square
         Bitboard pieces[PIECES]; 
         Bitboard piecesOnSide[COLOURS];
         Bitboard occupiedSquares;  
@@ -44,11 +43,13 @@ class ChessBoard {
         int endgameValueOfPiece(const Move& move); // Returns the endgame value of a piece on the to square
 
         PositionKey getPositionKey() const;
+        Piece getPiece(Square sq) const;
 
     private:
 
         /* ATTRIBUTES */
         PositionKey positionKey; // 64-Bit number to uniquely identify any given chess position (if the position is repeated, the same key will be produced)
+        Piece pieceBoard[SQUARES]; // Indexed by square and returns the piece on that square
         /*            */
 
         void piecePlacement(Bitboard* init, char piece);
@@ -69,6 +70,10 @@ int populationCount(Bitboard b);
 
 inline PositionKey ChessBoard::getPositionKey() const {
     return positionKey;
+}
+
+inline Piece ChessBoard::getPiece(Square sq) const {
+    return pieceBoard[sq];
 }
 
 #endif
