@@ -315,7 +315,7 @@ CombinedScore Evaluation::evaluatePassedPawns(Color c) {
             if (relativeRANK != RANK_7) 
                 cs2 -= makeScore(0, std::min(ChebyshevDistance[thisKing][blockingSq + pawnPush], 5) * weight);
 
-            if ((blockingSqToBB & board.emptySquares) > 0) {
+            if ((blockingSqToBB & board.getEmptySquares()) > 0) {
 
                 Bitboard squaresLeftToQueen = pawnFrontSpans(sqToBB, c);
                 Bitboard unsafeSquares      = pawnFrontSpans(sqToBB, c) | pawnAttackSpans(sqToBB, c);

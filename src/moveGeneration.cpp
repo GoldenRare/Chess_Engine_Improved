@@ -95,7 +95,7 @@ Move* generatePawnMoves(const ChessBoard& board, Move* movesList) {
 
     Color sideToPlay       = board.sideToPlay;
     Square enPassantSquare = board.enPassant;
-    Bitboard emptySquares  = board.emptySquares;
+    Bitboard emptySquares  = board.getEmptySquares();
     Bitboard enemyPieces   = board.getPiecesOnSide(~sideToPlay);
 
     Direction pawnPush      = (sideToPlay == WHITE) ? NORTH : SOUTH;
@@ -420,7 +420,7 @@ Move* generateKingMoves(const ChessBoard& board, Move* movesList) {
 
     unsigned int castlingBits = (sideToPlay == WHITE) ? board.castlingRights : board.castlingRights >> 2;
     Bitboard homeRankEmpty    = (sideToPlay == WHITE) ? RANK_1_BB : RANK_8_BB;
-    homeRankEmpty &= board.emptySquares;
+    homeRankEmpty &= board.getEmptySquares();
 
     //See if can kingside castle
     if ((castlingBits & 0b01) > 0) {
@@ -473,7 +473,7 @@ Move* generatePawnCaptureMoves(const ChessBoard& board, Move* movesList) {
 
     Color sideToPlay       = board.sideToPlay;
     Square enPassantSquare = board.enPassant;
-    Bitboard emptySquares  = board.emptySquares;
+    Bitboard emptySquares  = board.getEmptySquares();
     Bitboard enemyPieces   = board.getPiecesOnSide(~sideToPlay);
 
     Direction pawnPush      = (sideToPlay == WHITE) ? NORTH : SOUTH;

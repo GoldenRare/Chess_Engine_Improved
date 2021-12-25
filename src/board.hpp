@@ -11,7 +11,6 @@ class ChessBoard {
 
     public:
    
-        Bitboard emptySquares;
         int pieceCount[PIECES]; // Keeps track of the number of pieces on the board for a given piece
         Square pieceSquare[PIECES][10]; // Keeps track of all the squares for a given piece (Assumes 10 is the most you can have of one piece)
         Color sideToPlay;
@@ -45,6 +44,7 @@ class ChessBoard {
         Bitboard getPieces(Piece p1, Piece p2) const;
         Bitboard getPiecesOnSide(Color c) const;
         Bitboard getOccupiedSquares() const;
+        Bitboard getEmptySquares() const; 
 
     private:
 
@@ -54,6 +54,7 @@ class ChessBoard {
         Bitboard pieces[PIECES];
         Bitboard piecesOnSide[COLOURS];
         Bitboard occupiedSquares;
+        Bitboard emptySquares;
         /*            */
 
         void piecePlacement(Bitboard* init, char piece);
@@ -94,6 +95,10 @@ inline Bitboard ChessBoard::getPiecesOnSide(Color c) const {
 
 inline Bitboard ChessBoard::getOccupiedSquares() const { 
     return occupiedSquares;
+}
+
+inline Bitboard ChessBoard::getEmptySquares() const { 
+    return emptySquares;
 }
 
 #endif
