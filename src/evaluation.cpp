@@ -56,8 +56,8 @@ void Evaluation::initEvaluation() {
     Bitboard blackBadPawns = blackPawns & (pawnsAbleToPush(blackPawns, board.occupiedSquares, BLACK) | blackLowRanks);
 
     Bitboard temp;
-    Bitboard whiteKingBlockers = board.blockers(whiteKingSq, board.piecesOnSide[BLACK], temp);
-    Bitboard blackKingBlockers = board.blockers(blackKingSq, board.piecesOnSide[WHITE], temp);
+    Bitboard whiteKingBlockers = board.blockers(whiteKingSq, board.getPiecesOnSide(BLACK), temp);
+    Bitboard blackKingBlockers = board.blockers(blackKingSq, board.getPiecesOnSide(WHITE), temp);
 
     Bitboard whitePawnAttacks = allPawnAttacks(whitePawns, WHITE);
     Bitboard blackPawnAttacks = allPawnAttacks(blackPawns, BLACK);
@@ -122,7 +122,7 @@ CombinedScore Evaluation::evaluatePiece(PieceType pt, Color c) {
     Bitboard otherRooks   = board.getPieces(c == WHITE ? BLACK_ROOK   : WHITE_ROOK  );
 
     Bitboard queens = board.getPieces(WHITE_QUEEN, BLACK_QUEEN);
-    Bitboard kingBlockers = board.blockers(kingSq, board.piecesOnSide[~c], temp);
+    Bitboard kingBlockers = board.blockers(kingSq, board.getPiecesOnSide(~c), temp);
     /////////////////////////////////////
 
     Piece pieceIndex   = Piece(pt + (6 * c));
@@ -170,7 +170,7 @@ CombinedScore Evaluation::evaluatePiece(PieceType pt, Color c) {
                                                                   : blackOutpostRanks & (~pawnAttackSpans(board.getPieces(WHITE_PAWN), WHITE));
 
             if ((outposts & sqBB) > 0) cs += (OUTPOST_BONUS * (pt == KNIGHT) ? 2 : 1);
-            else if ((pt == KNIGHT) && ((outposts & attacks & (~board.piecesOnSide[c])) > 0)) cs += REACHABLE_OUTPOST_BONUS;
+            else if ((pt == KNIGHT) && ((outposts & attacks & (~board.getPiecesOnSide(c))) > 0)) cs += REACHABLE_OUTPOST_BONUS;
 
             //Uses pawnsAbleToPush as a hack for detecting minor pieces behind pawns
             if (pawnsAbleToPush(sqBB, board.getPieces(WHITE_PAWN, BLACK_PAWN), c) > 0) cs += MINOR_PIECE_BEHIND_PAWN_BONUS;
@@ -325,14 +325,14 @@ CombinedScore Evaluation::evaluatePassedPawns(Color c) {
                 //Tarrasch Rule: Rooks should be placed behind passed pawns.
                 //If enemy rook/queen behind passed pawn, then all push squares are unsafe.
                 //Otherwise check for attacks on the pawn advance by enemy
-                if ((behindPassedPawnRooksQueens & board.piecesOnSide[~c]) == 0)
+                if ((behindPassedPawnRooksQueens & board.getPiecesOnSide(~c)) == 0)
                     unsafeSquares &= attacksBy[~c][ALL_PIECE_TYPES];
 
                 int bonus =  unsafeSquares                       == 0 ? 35
                           : (unsafeSquares & squaresLeftToQueen) == 0 ? 20
                           : (unsafeSquares & blockingSqToBB)     == 0 ? 9 : 0;
 
-                if (((behindPassedPawnRooksQueens & board.piecesOnSide[c]) > 0) || ((attacksBy[c][ALL_PIECE_TYPES] & blockingSqToBB) > 0))
+                if (((behindPassedPawnRooksQueens & board.getPiecesOnSide(c)) > 0) || ((attacksBy[c][ALL_PIECE_TYPES] & blockingSqToBB) > 0))
                     bonus += 5;
 
                 cs2 += makeScore(bonus * weight, bonus * weight);
@@ -379,10 +379,10 @@ CombinedScore Evaluation::evaluateThreats(Color c) {
 
     Bitboard nonPawnEnemies, squaresStronglyProtectedByEnemy, defendedEnemies, weakEnemies, safeSquares;
 
-    nonPawnEnemies = board.piecesOnSide[~c] & ~board.getPieces(c == WHITE ? BLACK_PAWN : WHITE_PAWN);
+    nonPawnEnemies = board.getPiecesOnSide(~c) & ~board.getPieces(c == WHITE ? BLACK_PAWN : WHITE_PAWN);
     squaresStronglyProtectedByEnemy = attacksBy[~c][PAWN] | (attacksBy2[~c] & ~attacksBy2[c]);
     defendedEnemies = nonPawnEnemies & squaresStronglyProtectedByEnemy;
-    weakEnemies = board.piecesOnSide[~c] & ~squaresStronglyProtectedByEnemy & attacksBy[c][ALL_PIECE_TYPES];
+    weakEnemies = board.getPiecesOnSide(~c) & ~squaresStronglyProtectedByEnemy & attacksBy[c][ALL_PIECE_TYPES];
 
     CombinedScore cs = 0;
     Bitboard temp;
@@ -505,7 +505,7 @@ CombinedScore Evaluation::evaluateKing(Color c) {
     Bitboard enemyUnsafeChecks = 0;
 
     weakSquares = attacksBy[~c][ALL_PIECE_TYPES] & ~attacksBy2[c] & (~attacksBy[c][ALL_PIECE_TYPES] | attacksBy[c][QUEEN] | attacksBy[c][KING]);
-    enemySafeSquares = ~board.piecesOnSide[~c] & (~attacksBy[c][ALL_PIECE_TYPES] | (weakSquares & attacksBy2[~c]));
+    enemySafeSquares = ~board.getPiecesOnSide(~c) & (~attacksBy[c][ALL_PIECE_TYPES] | (weakSquares & attacksBy2[~c]));
 
     bishopAttacksXRaysQueen = bishopAttacks(board.occupiedSquares ^ theseQueens, kingSq);
     rookAttacksXRaysQueen   = rookAttacks  (board.occupiedSquares ^ theseQueens, kingSq);
@@ -529,7 +529,7 @@ CombinedScore Evaluation::evaluateKing(Color c) {
     kingDanger +=       attackingEnemyKingRingCount[~c] * attackingEnemyKingRingPieceWeight[~c]
                 + 185 * populationCount(kingRing[c] & weakSquares) 
                 + 148 * populationCount(enemyUnsafeChecks) 
-                + 98  * populationCount(board.blockers(kingSq, board.piecesOnSide[~c], temp))
+                + 98  * populationCount(board.blockers(kingSq, board.getPiecesOnSide(~c), temp))
                 + 69  * attackedSquaresAroundEnemyKing[~c] 
                 +       middlegameScore(totalMobility[~c] - totalMobility[c]) 
                 - 873 * (board.pieceCount[c == WHITE ? BLACK_QUEEN : WHITE_QUEEN] == 0) ? 1 : 0  

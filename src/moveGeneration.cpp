@@ -96,7 +96,7 @@ Move* generatePawnMoves(const ChessBoard& board, Move* movesList) {
     Color sideToPlay       = board.sideToPlay;
     Square enPassantSquare = board.enPassant;
     Bitboard emptySquares  = board.emptySquares;
-    Bitboard enemyPieces   = board.piecesOnSide[~sideToPlay];
+    Bitboard enemyPieces   = board.getPiecesOnSide(~sideToPlay);
 
     Direction pawnPush      = (sideToPlay == WHITE) ? NORTH : SOUTH;
     Bitboard seventhRank    = (sideToPlay == WHITE) ? RANK_7_BB : RANK_2_BB;
@@ -219,8 +219,8 @@ Move* generateKnightMoves(const ChessBoard& board, Move* movesList) {
     for (int i = 0; i < numberOfKnights; i++) {
 
         sq        = board.pieceSquare[pieceIndex][i];
-        attacks   = knightAttacks[sq] & (~board.piecesOnSide[sideToPlay]);
-        captures  = attacks & board.piecesOnSide[~sideToPlay];
+        attacks   = knightAttacks[sq] & (~board.getPiecesOnSide(sideToPlay));
+        captures  = attacks & board.getPiecesOnSide(~sideToPlay);
         quiets    = attacks ^ captures;
 
         while (captures > 0) {
@@ -238,8 +238,8 @@ Move* generateKnightMoves(const ChessBoard& board, Move* movesList) {
 Move* generateBishopMoves(const ChessBoard& board, Move* movesList) {
 
     Color sideToPlay          = board.sideToPlay;
-    Bitboard availableSquares = ~board.piecesOnSide[sideToPlay];
-    Bitboard enemyPieces      = board.piecesOnSide[~sideToPlay];
+    Bitboard availableSquares = ~board.getPiecesOnSide(sideToPlay);
+    Bitboard enemyPieces      = board.getPiecesOnSide(~sideToPlay);
     Bitboard occupied         = board.occupiedSquares;
 
     int pieceIndex      = WHITE_BISHOP + (6 * sideToPlay);
@@ -269,8 +269,8 @@ Move* generateBishopMoves(const ChessBoard& board, Move* movesList) {
 Move* generateRookMoves(const ChessBoard& board, Move* movesList) {
 
     Color sideToPlay          = board.sideToPlay;
-    Bitboard availableSquares = ~board.piecesOnSide[sideToPlay];
-    Bitboard enemyPieces      = board.piecesOnSide[~sideToPlay];
+    Bitboard availableSquares = ~board.getPiecesOnSide(sideToPlay);
+    Bitboard enemyPieces      = board.getPiecesOnSide(~sideToPlay);
     Bitboard occupied         = board.occupiedSquares;
 
     int pieceIndex      = WHITE_ROOK + (6 * sideToPlay);
@@ -300,8 +300,8 @@ Move* generateRookMoves(const ChessBoard& board, Move* movesList) {
 Move* generateQueenMoves(const ChessBoard& board, Move* movesList) {
 
     Color sideToPlay          = board.sideToPlay;
-    Bitboard availableSquares = ~board.piecesOnSide[sideToPlay];
-    Bitboard enemyPieces      = board.piecesOnSide[~sideToPlay];
+    Bitboard availableSquares = ~board.getPiecesOnSide(sideToPlay);
+    Bitboard enemyPieces      = board.getPiecesOnSide(~sideToPlay);
     Bitboard occupied         = board.occupiedSquares;
 
     int pieceIndex      = WHITE_QUEEN + (6 * sideToPlay);
@@ -397,8 +397,8 @@ Move* generateKingMoves(const ChessBoard& board, Move* movesList) {
 Move* generateKingMoves(const ChessBoard& board, Move* movesList) {
 
     Color sideToPlay = board.sideToPlay;
-    Bitboard availableSquares = ~board.piecesOnSide[sideToPlay];
-    Bitboard enemyPieces      = board.piecesOnSide[~sideToPlay];
+    Bitboard availableSquares = ~board.getPiecesOnSide(sideToPlay);
+    Bitboard enemyPieces      = board.getPiecesOnSide(~sideToPlay);
 
     int pieceIndex = WHITE_KING + (6 * sideToPlay);
 
@@ -474,7 +474,7 @@ Move* generatePawnCaptureMoves(const ChessBoard& board, Move* movesList) {
     Color sideToPlay       = board.sideToPlay;
     Square enPassantSquare = board.enPassant;
     Bitboard emptySquares  = board.emptySquares;
-    Bitboard enemyPieces   = board.piecesOnSide[~sideToPlay];
+    Bitboard enemyPieces   = board.getPiecesOnSide(~sideToPlay);
 
     Direction pawnPush      = (sideToPlay == WHITE) ? NORTH : SOUTH;
     Bitboard seventhRank    = (sideToPlay == WHITE) ? RANK_7_BB : RANK_2_BB;
@@ -581,7 +581,7 @@ Move* generateKnightCaptureMoves(const ChessBoard& board, Move* movesList) {
     for (int i = 0; i < numberOfKnights; i++) {
 
         sq       = board.pieceSquare[pieceIndex][i];
-        captures = knightAttacks[sq] & board.piecesOnSide[~sideToPlay];
+        captures = knightAttacks[sq] & board.getPiecesOnSide(~sideToPlay);
 
         while (captures > 0) {
             movesList++->move = move(sq, squareOfLS1B(&captures), CAPTURE);
@@ -593,7 +593,7 @@ Move* generateKnightCaptureMoves(const ChessBoard& board, Move* movesList) {
 Move* generateBishopCaptureMoves(const ChessBoard& board, Move* movesList) {
 
     Color sideToPlay     = board.sideToPlay;
-    Bitboard enemyPieces = board.piecesOnSide[~sideToPlay];
+    Bitboard enemyPieces = board.getPiecesOnSide(~sideToPlay);
     Bitboard occupied    = board.occupiedSquares;
 
     int pieceIndex      = WHITE_BISHOP + (6 * sideToPlay);
@@ -617,7 +617,7 @@ Move* generateBishopCaptureMoves(const ChessBoard& board, Move* movesList) {
 Move* generateRookCaptureMoves(const ChessBoard& board, Move* movesList) {
 
     Color sideToPlay     = board.sideToPlay;
-    Bitboard enemyPieces = board.piecesOnSide[~sideToPlay];
+    Bitboard enemyPieces = board.getPiecesOnSide(~sideToPlay);
     Bitboard occupied    = board.occupiedSquares;
 
     int pieceIndex    = WHITE_ROOK + (6 * sideToPlay);
@@ -641,7 +641,7 @@ Move* generateRookCaptureMoves(const ChessBoard& board, Move* movesList) {
 Move* generateQueenCaptureMoves(const ChessBoard& board, Move* movesList) {
 
     Color sideToPlay     = board.sideToPlay;
-    Bitboard enemyPieces = board.piecesOnSide[~sideToPlay];
+    Bitboard enemyPieces = board.getPiecesOnSide(~sideToPlay);
     Bitboard occupied    = board.occupiedSquares;
 
     int pieceIndex     = WHITE_QUEEN + (6 * sideToPlay);
@@ -665,7 +665,7 @@ Move* generateQueenCaptureMoves(const ChessBoard& board, Move* movesList) {
 Move* generateKingCaptureMoves(const ChessBoard& board, Move* movesList) {
 
     Color sideToPlay     = board.sideToPlay;
-    Bitboard enemyPieces = board.piecesOnSide[~sideToPlay];
+    Bitboard enemyPieces = board.getPiecesOnSide(~sideToPlay);
 
     int pieceIndex = WHITE_KING + (6 * sideToPlay);
 

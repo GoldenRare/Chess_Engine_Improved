@@ -605,8 +605,8 @@ bool SEE(ChessBoard& board, Move move, int materialValue) {
     Bitboard rooks   = board.getPieces(WHITE_ROOK  , BLACK_ROOK  );
     Bitboard queens  = board.getPieces(WHITE_QUEEN , BLACK_QUEEN );
 
-    kingBlockers[WHITE] = board.blockers(board.pieceSquare[WHITE_KING][0], board.piecesOnSide[BLACK], slidersPinningEnemyKing[BLACK]);
-    kingBlockers[BLACK] = board.blockers(board.pieceSquare[BLACK_KING][0], board.piecesOnSide[WHITE], slidersPinningEnemyKing[WHITE]);
+    kingBlockers[WHITE] = board.blockers(board.pieceSquare[WHITE_KING][0], board.getPiecesOnSide(BLACK), slidersPinningEnemyKing[BLACK]);
+    kingBlockers[BLACK] = board.blockers(board.pieceSquare[BLACK_KING][0], board.getPiecesOnSide(WHITE), slidersPinningEnemyKing[WHITE]);
     //////////////////////////////////////
 
     Bitboard occupied = board.occupiedSquares ^ squareToBitboard(fromSquare) ^ squareToBitboard(toSquare);
@@ -620,7 +620,7 @@ bool SEE(ChessBoard& board, Move move, int materialValue) {
         sideOfInterest = ~sideOfInterest;
         attackers &= occupied;
 
-        sideOfInterestAttackers = attackers & board.piecesOnSide[sideOfInterest];
+        sideOfInterestAttackers = attackers & board.getPiecesOnSide(sideOfInterest);
         if (sideOfInterestAttackers == 0) break;
 
         if ((slidersPinningEnemyKing[~sideOfInterest] & occupied) > 0)
@@ -689,7 +689,7 @@ bool SEE(ChessBoard& board, Move move, int materialValue) {
             
         }
 
-        return (attackers & ~board.piecesOnSide[sideOfInterest]) ? result ^ 1 : result;
+        return (attackers & ~board.getPiecesOnSide(sideOfInterest)) ? result ^ 1 : result;
     }
 
     return result == 0 ? false : true;

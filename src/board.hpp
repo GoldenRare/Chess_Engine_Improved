@@ -11,7 +11,6 @@ class ChessBoard {
 
     public:
  
-        Bitboard piecesOnSide[COLOURS];
         Bitboard occupiedSquares;  
         Bitboard emptySquares;
         int pieceCount[PIECES]; // Keeps track of the number of pieces on the board for a given piece
@@ -45,6 +44,7 @@ class ChessBoard {
         Piece getPiece(Square sq) const;
         Bitboard getPieces(Piece p1) const;
         Bitboard getPieces(Piece p1, Piece p2) const;
+        Bitboard getPiecesOnSide(Color c) const;
 
     private:
 
@@ -52,6 +52,7 @@ class ChessBoard {
         PositionKey positionKey; // 64-Bit number to uniquely identify any given chess position (if the position is repeated, the same key will be produced)
         Piece pieceBoard[SQUARES]; // Indexed by square and returns the piece on that square
         Bitboard pieces[PIECES];
+        Bitboard piecesOnSide[COLOURS];
         /*            */
 
         void piecePlacement(Bitboard* init, char piece);
@@ -84,6 +85,10 @@ inline Bitboard ChessBoard::getPieces(Piece p1) const {
 
 inline Bitboard ChessBoard::getPieces(Piece p1, Piece p2) const { 
     return pieces[p1] | pieces[p2]; 
+}
+
+inline Bitboard ChessBoard::getPiecesOnSide(Color c) const { 
+    return piecesOnSide[c];
 }
 
 #endif
