@@ -609,7 +609,7 @@ bool SEE(ChessBoard& board, Move move, int materialValue) {
     kingBlockers[BLACK] = board.blockers(board.pieceSquare[BLACK_KING][0], board.getPiecesOnSide(WHITE), slidersPinningEnemyKing[WHITE]);
     //////////////////////////////////////
 
-    Bitboard occupied = board.occupiedSquares ^ squareToBitboard(fromSquare) ^ squareToBitboard(toSquare);
+    Bitboard occupied = board.getOccupiedSquares() ^ squareToBitboard(fromSquare) ^ squareToBitboard(toSquare);
     Color sideOfInterest = board.sideToPlay;
     Bitboard attackers = board.attackersToSquare(toSquare, occupied);
     Bitboard sideOfInterestAttackers, leastValuableAttacker;

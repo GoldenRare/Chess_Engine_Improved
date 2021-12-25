@@ -10,8 +10,7 @@ extern int ChebyshevDistance[SQUARES][SQUARES];
 class ChessBoard {
 
     public:
- 
-        Bitboard occupiedSquares;  
+   
         Bitboard emptySquares;
         int pieceCount[PIECES]; // Keeps track of the number of pieces on the board for a given piece
         Square pieceSquare[PIECES][10]; // Keeps track of all the squares for a given piece (Assumes 10 is the most you can have of one piece)
@@ -45,6 +44,7 @@ class ChessBoard {
         Bitboard getPieces(Piece p1) const;
         Bitboard getPieces(Piece p1, Piece p2) const;
         Bitboard getPiecesOnSide(Color c) const;
+        Bitboard getOccupiedSquares() const;
 
     private:
 
@@ -53,6 +53,7 @@ class ChessBoard {
         Piece pieceBoard[SQUARES]; // Indexed by square and returns the piece on that square
         Bitboard pieces[PIECES];
         Bitboard piecesOnSide[COLOURS];
+        Bitboard occupiedSquares;
         /*            */
 
         void piecePlacement(Bitboard* init, char piece);
@@ -89,6 +90,10 @@ inline Bitboard ChessBoard::getPieces(Piece p1, Piece p2) const {
 
 inline Bitboard ChessBoard::getPiecesOnSide(Color c) const { 
     return piecesOnSide[c];
+}
+
+inline Bitboard ChessBoard::getOccupiedSquares() const { 
+    return occupiedSquares;
 }
 
 #endif

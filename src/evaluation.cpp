@@ -52,8 +52,8 @@ void Evaluation::initEvaluation() {
     Bitboard blackLowRanks = RANK_7_BB | RANK_6_BB;
 
     //Uses pawnsAbleToPush as a hack for finding blocked pawns
-    Bitboard whiteBadPawns = whitePawns & (pawnsAbleToPush(whitePawns, board.occupiedSquares, WHITE) | whiteLowRanks);
-    Bitboard blackBadPawns = blackPawns & (pawnsAbleToPush(blackPawns, board.occupiedSquares, BLACK) | blackLowRanks);
+    Bitboard whiteBadPawns = whitePawns & (pawnsAbleToPush(whitePawns, board.getOccupiedSquares(), WHITE) | whiteLowRanks);
+    Bitboard blackBadPawns = blackPawns & (pawnsAbleToPush(blackPawns, board.getOccupiedSquares(), BLACK) | blackLowRanks);
 
     Bitboard temp;
     Bitboard whiteKingBlockers = board.blockers(whiteKingSq, board.getPiecesOnSide(BLACK), temp);
@@ -141,9 +141,9 @@ CombinedScore Evaluation::evaluatePiece(PieceType pt, Color c) {
 
         //Includes x-ray attacks for sliders
         attacks = (pt == KNIGHT) ? knightAttacks[sq] 
-                : (pt == BISHOP) ? bishopAttacks(board.occupiedSquares ^ queens, sq)
-                : (pt == ROOK  ) ? rookAttacks(board.occupiedSquares ^ queens ^ board.getPieces(pieceIndex), sq)
-                : bishopAttacks(board.occupiedSquares, sq) | rookAttacks(board.occupiedSquares, sq);
+                : (pt == BISHOP) ? bishopAttacks(board.getOccupiedSquares() ^ queens, sq)
+                : (pt == ROOK  ) ? rookAttacks(board.getOccupiedSquares() ^ queens ^ board.getPieces(pieceIndex), sq)
+                : bishopAttacks(board.getOccupiedSquares(), sq) | rookAttacks(board.getOccupiedSquares(), sq);
 
         // If piece is pinned to the king, then can only move along the ray of the incoming attack
         if (kingBlockers & sq)
@@ -179,7 +179,7 @@ CombinedScore Evaluation::evaluatePiece(PieceType pt, Color c) {
             
             if (pt == BISHOP) {
 
-                Bitboard blockedPawns = pawnsAbleToPush(thesePawns, board.occupiedSquares, c);
+                Bitboard blockedPawns = pawnsAbleToPush(thesePawns, board.getOccupiedSquares(), c);
                 cs -= PAWNS_BLOCKING_BISHOP_PENALTY * (populationCount(blockedPawns & CENTER_FILES) + 1) * 
                       populationCount(thesePawns & ((sqBB & DARK_SQUARES) ? DARK_SQUARES : LIGHT_SQUARES));
 
@@ -422,8 +422,8 @@ CombinedScore Evaluation::evaluateThreats(Color c) {
         temp = attacksBy[c][KNIGHT] & knightAttacks[sq];
         cs += KNIGHT_ATTACKING_QUEEN_BONUS * populationCount(temp & safeSquares);
 
-        temp = (attacksBy[c][BISHOP] & bishopAttacks(board.occupiedSquares, sq)) |
-               (attacksBy[c][ROOK  ] & rookAttacks  (board.occupiedSquares, sq));
+        temp = (attacksBy[c][BISHOP] & bishopAttacks(board.getOccupiedSquares(), sq)) |
+               (attacksBy[c][ROOK  ] & rookAttacks  (board.getOccupiedSquares(), sq));
         cs += SLIDING_PIECE_ATTACKING_QUEEN_BONUS * populationCount(temp & safeSquares & attacksBy2[c]);
 
     }
@@ -507,8 +507,8 @@ CombinedScore Evaluation::evaluateKing(Color c) {
     weakSquares = attacksBy[~c][ALL_PIECE_TYPES] & ~attacksBy2[c] & (~attacksBy[c][ALL_PIECE_TYPES] | attacksBy[c][QUEEN] | attacksBy[c][KING]);
     enemySafeSquares = ~board.getPiecesOnSide(~c) & (~attacksBy[c][ALL_PIECE_TYPES] | (weakSquares & attacksBy2[~c]));
 
-    bishopAttacksXRaysQueen = bishopAttacks(board.occupiedSquares ^ theseQueens, kingSq);
-    rookAttacksXRaysQueen   = rookAttacks  (board.occupiedSquares ^ theseQueens, kingSq);
+    bishopAttacksXRaysQueen = bishopAttacks(board.getOccupiedSquares() ^ theseQueens, kingSq);
+    rookAttacksXRaysQueen   = rookAttacks  (board.getOccupiedSquares() ^ theseQueens, kingSq);
 
     enemyRookChecks = rookAttacksXRaysQueen & enemySafeSquares & attacksBy[~c][ROOK];
     if (enemyRookChecks > 0) kingDanger += SAFE_ROOK_CHECK_PENALTY;
