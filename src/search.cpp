@@ -599,11 +599,11 @@ bool SEE(ChessBoard& board, Move move, int materialValue) {
     Bitboard kingBlockers[COLOURS];
     Bitboard slidersPinningEnemyKing[COLOURS];
     //////////////////////////////////////
-    Bitboard pawns   = board.pieces[WHITE_PAWN  ] | board.pieces[BLACK_PAWN  ];
-    Bitboard knights = board.pieces[WHITE_KNIGHT] | board.pieces[BLACK_KNIGHT];
-    Bitboard bishops = board.pieces[WHITE_BISHOP] | board.pieces[BLACK_BISHOP];
-    Bitboard rooks   = board.pieces[WHITE_ROOK  ] | board.pieces[BLACK_ROOK  ];
-    Bitboard queens  = board.pieces[WHITE_QUEEN ] | board.pieces[BLACK_QUEEN ];
+    Bitboard pawns   = board.getPieces(WHITE_PAWN  , BLACK_PAWN  );
+    Bitboard knights = board.getPieces(WHITE_KNIGHT, BLACK_KNIGHT);
+    Bitboard bishops = board.getPieces(WHITE_BISHOP, BLACK_BISHOP);
+    Bitboard rooks   = board.getPieces(WHITE_ROOK  , BLACK_ROOK  );
+    Bitboard queens  = board.getPieces(WHITE_QUEEN , BLACK_QUEEN );
 
     kingBlockers[WHITE] = board.blockers(board.pieceSquare[WHITE_KING][0], board.piecesOnSide[BLACK], slidersPinningEnemyKing[BLACK]);
     kingBlockers[BLACK] = board.blockers(board.pieceSquare[BLACK_KING][0], board.piecesOnSide[WHITE], slidersPinningEnemyKing[WHITE]);

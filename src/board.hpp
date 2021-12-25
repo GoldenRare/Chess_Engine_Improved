@@ -10,8 +10,7 @@ extern int ChebyshevDistance[SQUARES][SQUARES];
 class ChessBoard {
 
     public:
-
-        Bitboard pieces[PIECES]; 
+ 
         Bitboard piecesOnSide[COLOURS];
         Bitboard occupiedSquares;  
         Bitboard emptySquares;
@@ -44,12 +43,15 @@ class ChessBoard {
 
         PositionKey getPositionKey() const;
         Piece getPiece(Square sq) const;
+        Bitboard getPieces(Piece p1) const;
+        Bitboard getPieces(Piece p1, Piece p2) const;
 
     private:
 
         /* ATTRIBUTES */
         PositionKey positionKey; // 64-Bit number to uniquely identify any given chess position (if the position is repeated, the same key will be produced)
         Piece pieceBoard[SQUARES]; // Indexed by square and returns the piece on that square
+        Bitboard pieces[PIECES];
         /*            */
 
         void piecePlacement(Bitboard* init, char piece);
@@ -74,6 +76,14 @@ inline PositionKey ChessBoard::getPositionKey() const {
 
 inline Piece ChessBoard::getPiece(Square sq) const {
     return pieceBoard[sq];
+}
+
+inline Bitboard ChessBoard::getPieces(Piece p1) const { 
+    return pieces[p1]; 
+}
+
+inline Bitboard ChessBoard::getPieces(Piece p1, Piece p2) const { 
+    return pieces[p1] | pieces[p2]; 
 }
 
 #endif

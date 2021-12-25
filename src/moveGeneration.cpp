@@ -101,8 +101,8 @@ Move* generatePawnMoves(const ChessBoard& board, Move* movesList) {
     Direction pawnPush      = (sideToPlay == WHITE) ? NORTH : SOUTH;
     Bitboard seventhRank    = (sideToPlay == WHITE) ? RANK_7_BB : RANK_2_BB;
 
-    int pieceIndex = WHITE_PAWN + (6 * sideToPlay);
-    Bitboard pawns = board.pieces[pieceIndex];
+    Piece pieceIndex = WHITE_PAWN + (6 * sideToPlay);
+    Bitboard pawns   = board.getPieces(pieceIndex);
 
     Bitboard captures, quiets, enPassantBB, enPassantCaptures, pushOnce, seventhRankPawns;
     Square sq;
@@ -479,8 +479,8 @@ Move* generatePawnCaptureMoves(const ChessBoard& board, Move* movesList) {
     Direction pawnPush      = (sideToPlay == WHITE) ? NORTH : SOUTH;
     Bitboard seventhRank    = (sideToPlay == WHITE) ? RANK_7_BB : RANK_2_BB;
 
-    int pieceIndex = WHITE_PAWN + (6 * sideToPlay);
-    Bitboard pawns = board.pieces[pieceIndex];
+    Piece pieceIndex = WHITE_PAWN + (6 * sideToPlay);
+    Bitboard pawns   = board.getPieces(pieceIndex);
 
     Bitboard captures, quiets, enPassantBB, enPassantCaptures, pushOnce, seventhRankPawns;
     Square sq;
