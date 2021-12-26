@@ -93,7 +93,7 @@ Move* generatePawnMoves(const ChessBoard& board, Move* movesList) {
 
 Move* generatePawnMoves(const ChessBoard& board, Move* movesList) {
 
-    Color sideToPlay       = board.sideToPlay;
+    Color sideToPlay       = board.getSideToPlay();
     Square enPassantSquare = board.enPassant;
     Bitboard emptySquares  = board.getEmptySquares();
     Bitboard enemyPieces   = board.getPiecesOnSide(~sideToPlay);
@@ -208,7 +208,7 @@ Move* generatePawnMoves(const ChessBoard& board, Move* movesList) {
 
 Move* generateKnightMoves(const ChessBoard& board, Move* movesList) {
 
-    Color sideToPlay = board.sideToPlay;
+    Color sideToPlay = board.getSideToPlay();
 
     Piece pieceIndex      = WHITE_KNIGHT + (6 * sideToPlay);
     int numberOfKnights   = board.getPieceCount(pieceIndex);
@@ -238,7 +238,7 @@ Move* generateKnightMoves(const ChessBoard& board, Move* movesList) {
 
 Move* generateBishopMoves(const ChessBoard& board, Move* movesList) {
 
-    Color sideToPlay          = board.sideToPlay;
+    Color sideToPlay          = board.getSideToPlay();
     Bitboard availableSquares = ~board.getPiecesOnSide(sideToPlay);
     Bitboard enemyPieces      = board.getPiecesOnSide(~sideToPlay);
     Bitboard occupied         = board.getOccupiedSquares();
@@ -270,7 +270,7 @@ Move* generateBishopMoves(const ChessBoard& board, Move* movesList) {
 
 Move* generateRookMoves(const ChessBoard& board, Move* movesList) {
 
-    Color sideToPlay          = board.sideToPlay;
+    Color sideToPlay          = board.getSideToPlay();
     Bitboard availableSquares = ~board.getPiecesOnSide(sideToPlay);
     Bitboard enemyPieces      = board.getPiecesOnSide(~sideToPlay);
     Bitboard occupied         = board.getOccupiedSquares();
@@ -302,7 +302,7 @@ Move* generateRookMoves(const ChessBoard& board, Move* movesList) {
 
 Move* generateQueenMoves(const ChessBoard& board, Move* movesList) {
 
-    Color sideToPlay          = board.sideToPlay;
+    Color sideToPlay          = board.getSideToPlay();
     Bitboard availableSquares = ~board.getPiecesOnSide(sideToPlay);
     Bitboard enemyPieces      = board.getPiecesOnSide(~sideToPlay);
     Bitboard occupied         = board.getOccupiedSquares();
@@ -400,7 +400,7 @@ Move* generateKingMoves(const ChessBoard& board, Move* movesList) {
 
 Move* generateKingMoves(const ChessBoard& board, Move* movesList) {
 
-    Color sideToPlay = board.sideToPlay;
+    Color sideToPlay = board.getSideToPlay();
     Bitboard availableSquares = ~board.getPiecesOnSide(sideToPlay);
     Bitboard enemyPieces      = board.getPiecesOnSide(~sideToPlay);
 
@@ -475,7 +475,7 @@ Move* generateAllPseudoCaptureMoves(const ChessBoard& board, Move* movesList) {
 
 Move* generatePawnCaptureMoves(const ChessBoard& board, Move* movesList) {
 
-    Color sideToPlay       = board.sideToPlay;
+    Color sideToPlay       = board.getSideToPlay();
     Square enPassantSquare = board.enPassant;
     Bitboard emptySquares  = board.getEmptySquares();
     Bitboard enemyPieces   = board.getPiecesOnSide(~sideToPlay);
@@ -574,7 +574,7 @@ Move* generatePawnCaptureMoves(const ChessBoard& board, Move* movesList) {
 
 Move* generateKnightCaptureMoves(const ChessBoard& board, Move* movesList) {
 
-    Color sideToPlay = board.sideToPlay;
+    Color sideToPlay = board.getSideToPlay();
 
     Piece pieceIndex      = WHITE_KNIGHT + (6 * sideToPlay);
     int numberOfKnights   = board.getPieceCount(pieceIndex);
@@ -597,7 +597,7 @@ Move* generateKnightCaptureMoves(const ChessBoard& board, Move* movesList) {
 
 Move* generateBishopCaptureMoves(const ChessBoard& board, Move* movesList) {
 
-    Color sideToPlay     = board.sideToPlay;
+    Color sideToPlay     = board.getSideToPlay();
     Bitboard enemyPieces = board.getPiecesOnSide(~sideToPlay);
     Bitboard occupied    = board.getOccupiedSquares();
 
@@ -622,7 +622,7 @@ Move* generateBishopCaptureMoves(const ChessBoard& board, Move* movesList) {
 
 Move* generateRookCaptureMoves(const ChessBoard& board, Move* movesList) {
 
-    Color sideToPlay     = board.sideToPlay;
+    Color sideToPlay     = board.getSideToPlay();
     Bitboard enemyPieces = board.getPiecesOnSide(~sideToPlay);
     Bitboard occupied    = board.getOccupiedSquares();
 
@@ -647,7 +647,7 @@ Move* generateRookCaptureMoves(const ChessBoard& board, Move* movesList) {
 
 Move* generateQueenCaptureMoves(const ChessBoard& board, Move* movesList) {
 
-    Color sideToPlay     = board.sideToPlay;
+    Color sideToPlay     = board.getSideToPlay();
     Bitboard enemyPieces = board.getPiecesOnSide(~sideToPlay);
     Bitboard occupied    = board.getOccupiedSquares();
 
@@ -672,7 +672,7 @@ Move* generateQueenCaptureMoves(const ChessBoard& board, Move* movesList) {
 
 Move* generateKingCaptureMoves(const ChessBoard& board, Move* movesList) {
 
-    Color sideToPlay     = board.sideToPlay;
+    Color sideToPlay     = board.getSideToPlay();
     Bitboard enemyPieces = board.getPiecesOnSide(~sideToPlay);
 
     Piece pieceIndex = WHITE_KING + (6 * sideToPlay);

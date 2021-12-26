@@ -10,7 +10,6 @@ class ChessBoard {
 
     public:
    
-        Color sideToPlay;
         Square enPassant;
         unsigned int castlingRights; // Order of the bits: blackQueenside, blackKingside, whiteQueenside, whiteKingside
         int nonPawnMaterial[COLOURS]; // The sum of all piece values for a given side (not including pawns or kings)
@@ -42,6 +41,7 @@ class ChessBoard {
         Bitboard getPiecesOnSide(Color c) const;
         Bitboard getOccupiedSquares() const;
         Bitboard getEmptySquares() const; 
+        Color getSideToPlay() const;
         Square getSquare(Piece p) const; // Returns the square of the FIRST piece in the pieceList (used when you know only one piece can exist, for example, there can only be one king)
         const Square* getSquares(Piece p) const; // Return ALL the squares for the piece in the pieceList (indexing should be paired with pieceCount to know when to stop)
         int getPieceCount(Piece p) const; 
@@ -57,6 +57,7 @@ class ChessBoard {
         Bitboard emptySquares;
         int pieceCount[PIECES]; // Keeps track of the number of pieces on the board for a given piece
         Square pieceSquare[PIECES][10]; // Keeps track of all the squares for a given piece (Assumes 10 is the most you can have of one piece)
+        Color sideToPlay;
         /*            */
 
         void piecePlacement(Bitboard* init, char piece);
@@ -103,8 +104,8 @@ inline Bitboard ChessBoard::getEmptySquares() const {
     return emptySquares;
 }
 
-inline int ChessBoard::getPieceCount(Piece p) const {
-    return pieceCount[p];
+inline Color ChessBoard::getSideToPlay() const {
+    return sideToPlay;
 }
 
 inline Square ChessBoard::getSquare(Piece p) const {
@@ -113,6 +114,10 @@ inline Square ChessBoard::getSquare(Piece p) const {
 
 inline const Square* ChessBoard::getSquares(Piece p) const {
     return pieceSquare[p];
+}
+
+inline int ChessBoard::getPieceCount(Piece p) const {
+    return pieceCount[p];
 }
 
 #endif

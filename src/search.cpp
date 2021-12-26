@@ -51,7 +51,7 @@ Bitboard perft(ChessBoard& board, int depth) {
     Move* movesListStart = movesList;
     Move* movesListEnd = generateAllPseudoMoves(board, movesListStart);
     Bitboard nodes = 0;
-    Color kingInCheck = board.sideToPlay;
+    Color kingInCheck = board.getSideToPlay();
     Piece king        = (kingInCheck == WHITE) ? WHITE_KING : BLACK_KING;
 
     PositionKey before = board.getPositionKey();
@@ -81,7 +81,7 @@ void divide(ChessBoard& board, int depth) {
     while (movesListStart < movesListEnd) {
 
         board.makeMove(*movesListStart);
-        Color kingInCheck = ~board.sideToPlay;
+        Color kingInCheck = ~board.getSideToPlay();
         Piece king = (kingInCheck == WHITE) ? WHITE_KING : BLACK_KING;
         if (!board.isSquareAttacked(board.getSquare(king), kingInCheck)){
             result = perft(board, depth);
@@ -152,7 +152,7 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
     killerMoves[board.ply + 1][1] = 0;
     //////////////////////////////////////////////////////////
 
-    Color kingInCheck = board.sideToPlay;
+    Color kingInCheck = board.getSideToPlay();
     Piece king        = (kingInCheck == WHITE) ? WHITE_KING : BLACK_KING;
     ExactScore staticEvaluation, staticEvaluationAdjusted;
     ///////////////// Static Evaluation //////////////////////
@@ -213,7 +213,7 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
         givesCheck = board.givesCheck(*movesListStart);
         captureOrPromotionMove = isCapture(*movesListStart) || isPromotion(*movesListStart);
         ////////////// Pruning Before Making Move //////////////
-        if (!isRootNode && board.nonPawnMaterial[board.sideToPlay] > 0 && bestNodeScore > GUARANTEE_CHECKMATED) {
+        if (!isRootNode && board.nonPawnMaterial[board.getSideToPlay()] > 0 && bestNodeScore > GUARANTEE_CHECKMATED) {
 
             moveCountPruning = legalMoves >= ((5 + depth * depth) / 2 - 1);
             if (!givesCheck && !captureOrPromotionMove) {
@@ -387,7 +387,7 @@ void iterativeDeepening(ChessBoard& board, int maxDepth) {
 ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta, bool isPVNode) {
 
     bool inCheck;
-    Color kingInCheck = board.sideToPlay;
+    Color kingInCheck = board.getSideToPlay();
     Piece king        = (kingInCheck == WHITE) ? WHITE_KING : BLACK_KING;
 
     /////////////// Erase Killers of Next Ply ////////////////
@@ -610,7 +610,7 @@ bool SEE(ChessBoard& board, Move move, int materialValue) {
     //////////////////////////////////////
 
     Bitboard occupied = board.getOccupiedSquares() ^ squareToBitboard(fromSquare) ^ squareToBitboard(toSquare);
-    Color sideOfInterest = board.sideToPlay;
+    Color sideOfInterest = board.getSideToPlay();
     Bitboard attackers = board.attackersToSquare(toSquare, occupied);
     Bitboard sideOfInterestAttackers, leastValuableAttacker;
     int result = 1;

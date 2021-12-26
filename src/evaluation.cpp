@@ -642,7 +642,7 @@ ExactScore Evaluation::evaluatePosition() {
 
     cs += evaluateInitiative(cs);
     
-    cs = (board.sideToPlay == WHITE) ? cs : -cs; //Score relative to the side to play
+    cs = (board.getSideToPlay() == WHITE) ? cs : -cs; //Score relative to the side to play
 
     int phase = gamePhase();
     evaluation = ((middlegameScore(cs) * (256 - phase)) + (endgameScore(cs) * phase)) / 256; //Formula to create smooth transitions from opening to endgame
