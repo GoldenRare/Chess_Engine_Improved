@@ -94,7 +94,7 @@ Move* generatePawnMoves(const ChessBoard& board, Move* movesList) {
 Move* generatePawnMoves(const ChessBoard& board, Move* movesList) {
 
     Color sideToPlay       = board.getSideToPlay();
-    Square enPassantSquare = board.enPassant;
+    Square enPassantSquare = board.getEnPassant();
     Bitboard emptySquares  = board.getEmptySquares();
     Bitboard enemyPieces   = board.getPiecesOnSide(~sideToPlay);
 
@@ -476,7 +476,7 @@ Move* generateAllPseudoCaptureMoves(const ChessBoard& board, Move* movesList) {
 Move* generatePawnCaptureMoves(const ChessBoard& board, Move* movesList) {
 
     Color sideToPlay       = board.getSideToPlay();
-    Square enPassantSquare = board.enPassant;
+    Square enPassantSquare = board.getEnPassant();
     Bitboard emptySquares  = board.getEmptySquares();
     Bitboard enemyPieces   = board.getPiecesOnSide(~sideToPlay);
 
