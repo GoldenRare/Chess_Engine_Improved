@@ -9,8 +9,6 @@ extern int ChebyshevDistance[SQUARES][SQUARES];
 class ChessBoard {
 
     public:
-   
-        CombinedScore pieceSquareScore; // A score which combines the value of each piece and the square it occupies (score is relative to white)
 
         unsigned int ply;
         unsigned int halfmoves; 
@@ -39,6 +37,7 @@ class ChessBoard {
         Bitboard getOccupiedSquares() const;
         Bitboard getEmptySquares() const; 
         Color getSideToPlay() const;
+        CombinedScore getPieceSquareScore() const;
         Square getEnPassant() const;
         Square getSquare(Piece p) const; // Returns the square of the FIRST piece in the pieceList (used when you know only one piece can exist, for example, there can only be one king)
         const Square* getSquares(Piece p) const; // Return ALL the squares for the piece in the pieceList (indexing should be paired with pieceCount to know when to stop)
@@ -62,6 +61,7 @@ class ChessBoard {
         Square enPassant;
         unsigned int castlingRights; // Order of the bits: blackQueenside, blackKingside, whiteQueenside, whiteKingside
         int nonPawnMaterial[COLOURS]; // The sum of all piece values for a given side (not including pawns or kings)
+        CombinedScore pieceSquareScore; // A score which combines the value of each piece and the square it occupies (score is relative to white)
         /*            */
 
         void piecePlacement(Bitboard* init, char piece);
@@ -110,6 +110,10 @@ inline Bitboard ChessBoard::getEmptySquares() const {
 
 inline Color ChessBoard::getSideToPlay() const {
     return sideToPlay;
+}
+
+inline CombinedScore ChessBoard::getPieceSquareScore() const {
+    return pieceSquareScore;
 }
 
 inline Square ChessBoard::getEnPassant() const {

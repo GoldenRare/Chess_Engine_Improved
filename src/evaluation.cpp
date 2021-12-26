@@ -622,7 +622,7 @@ ExactScore Evaluation::evaluateImbalanceHelper(Color c, int pieceCount[COLOURS][
 ExactScore Evaluation::evaluatePosition() {
 
     ExactScore evaluation;
-    CombinedScore cs = board.pieceSquareScore + evaluateImbalance();
+    CombinedScore cs = board.getPieceSquareScore() + evaluateImbalance();
 
     cs += evaluatePawns(WHITE) - evaluatePawns(BLACK);
 
