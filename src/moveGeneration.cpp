@@ -422,7 +422,7 @@ Move* generateKingMoves(const ChessBoard& board, Move* movesList) {
         movesList++->move = move(sq, squareOfLS1B(&quiets), QUIET);
     }
 
-    unsigned int castlingBits = (sideToPlay == WHITE) ? board.castlingRights : board.castlingRights >> 2;
+    unsigned int castlingBits = (sideToPlay == WHITE) ? board.getCastlingRights() : board.getCastlingRights() >> 2;
     Bitboard homeRankEmpty    = (sideToPlay == WHITE) ? RANK_1_BB : RANK_8_BB;
     homeRankEmpty &= board.getEmptySquares();
 

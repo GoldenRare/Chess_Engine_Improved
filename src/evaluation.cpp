@@ -196,7 +196,7 @@ CombinedScore Evaluation::evaluatePiece(PieceType pt, Color c) {
             else if (mobility <= 3) {
 
                 File kingFile = fileOfSquareFILE(kingSq);
-                int castlingRights = board.castlingRights & (c == WHITE ? 0b0011 : 0b1100); 
+                int castlingRights = board.getCastlingRights() & (c == WHITE ? 0b0011 : 0b1100); 
                 if ((kingFile < FILE_E) == (fileOfSquareFILE(sq) < kingFile))
                     cs -= ROOK_TRAPPED_PENALTY * (castlingRights == 0 ? 2 : 1);
 
@@ -470,7 +470,7 @@ CombinedScore Evaluation::evaluateKingSafety(Color c) {
     
     /////////////////////////////////////
     Square kingSq = board.getSquare(c == WHITE ? WHITE_KING : BLACK_KING);
-    int castlingRights = c == WHITE ? board.castlingRights & 0b0011 : (board.castlingRights & 0b1100) >> 2;
+    int castlingRights = c == WHITE ? board.getCastlingRights() & 0b0011 : (board.getCastlingRights() & 0b1100) >> 2;
     Bitboard thesePawns = board.getPieces(c == WHITE ? WHITE_PAWN : BLACK_PAWN);
     /////////////////////////////////////
     CombinedScore cs = evaluatePawnShelter(c, kingSq);

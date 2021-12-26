@@ -10,7 +10,6 @@ class ChessBoard {
 
     public:
    
-        unsigned int castlingRights; // Order of the bits: blackQueenside, blackKingside, whiteQueenside, whiteKingside
         int nonPawnMaterial[COLOURS]; // The sum of all piece values for a given side (not including pawns or kings)
         CombinedScore pieceSquareScore; // A score which combines the value of each piece and the square it occupies (score is relative to white)
 
@@ -45,6 +44,7 @@ class ChessBoard {
         Square getSquare(Piece p) const; // Returns the square of the FIRST piece in the pieceList (used when you know only one piece can exist, for example, there can only be one king)
         const Square* getSquares(Piece p) const; // Return ALL the squares for the piece in the pieceList (indexing should be paired with pieceCount to know when to stop)
         int getPieceCount(Piece p) const; 
+        unsigned int getCastlingRights() const;
 
     private:
 
@@ -59,6 +59,7 @@ class ChessBoard {
         Square pieceSquare[PIECES][10]; // Keeps track of all the squares for a given piece (Assumes 10 is the most you can have of one piece)
         Color sideToPlay;
         Square enPassant;
+        unsigned int castlingRights; // Order of the bits: blackQueenside, blackKingside, whiteQueenside, whiteKingside
         /*            */
 
         void piecePlacement(Bitboard* init, char piece);
@@ -123,6 +124,10 @@ inline const Square* ChessBoard::getSquares(Piece p) const {
 
 inline int ChessBoard::getPieceCount(Piece p) const {
     return pieceCount[p];
+}
+
+inline unsigned int ChessBoard::getCastlingRights() const {
+    return castlingRights;
 }
 
 #endif
