@@ -60,7 +60,7 @@ Bitboard perft(ChessBoard& board, int depth) {
         board.makeMove(*movesListStart);
         assert(before != board.getPositionKey());
         
-        if (!board.isSquareAttacked(board.pieceSquare[king][0], kingInCheck)){
+        if (!board.isSquareAttacked(board.getSquare(king), kingInCheck)){
             nodes += perft(board, depth - 1);
         }
         board.undoMove();
@@ -83,7 +83,7 @@ void divide(ChessBoard& board, int depth) {
         board.makeMove(*movesListStart);
         Color kingInCheck = ~board.sideToPlay;
         Piece king = (kingInCheck == WHITE) ? WHITE_KING : BLACK_KING;
-        if (!board.isSquareAttacked(board.pieceSquare[king][0], kingInCheck)){
+        if (!board.isSquareAttacked(board.getSquare(king), kingInCheck)){
             result = perft(board, depth);
             std::cout << getFrom(*movesListStart) << " " << getTo(*movesListStart) << " " << getFlags(*movesListStart) << ": " << result << std::endl;
         } else result = 0;
@@ -156,7 +156,7 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
     Piece king        = (kingInCheck == WHITE) ? WHITE_KING : BLACK_KING;
     ExactScore staticEvaluation, staticEvaluationAdjusted;
     ///////////////// Static Evaluation //////////////////////
-    if (board.isSquareAttacked(board.pieceSquare[king][0], kingInCheck)) 
+    if (board.isSquareAttacked(board.getSquare(king), kingInCheck)) 
         staticEvaluationAdjusted = staticEvaluation = NO_VALUE;
         
     else if (hasEvaluation) {
@@ -235,7 +235,7 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
         board.makeMove(*movesListStart);
         
         //If move is illegal, don't evaluate
-        if (board.isSquareAttacked(board.pieceSquare[king][0], kingInCheck)) {
+        if (board.isSquareAttacked(board.getSquare(king), kingInCheck)) {
 
             legalMoves--;
             board.undoMove();
@@ -307,7 +307,7 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
 
     //////////////// Checkmate or Stalemate /////////////////
     if(legalMoves == 0) {
-        if (board.isSquareAttacked(board.pieceSquare[king][0], kingInCheck)) 
+        if (board.isSquareAttacked(board.getSquare(king), kingInCheck)) 
             bestNodeScore = -CHECKMATE + board.ply;
         else bestNodeScore = STALEMATE;
     }
@@ -433,7 +433,7 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta, bool isPVNod
     
     ExactScore staticEvaluation, bestNodeScore;
     int futilityBase, futilityValue;
-    inCheck = board.isSquareAttacked(board.pieceSquare[king][0], kingInCheck);
+    inCheck = board.isSquareAttacked(board.getSquare(king), kingInCheck);
     ///////////////// Static Evaluation //////////////////////
     if (inCheck) { 
         staticEvaluation = NO_VALUE;
@@ -517,7 +517,7 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta, bool isPVNod
         board.makeMove(*movesListStart);
         
         //If move is illegal, don't evaluate
-        if (board.isSquareAttacked(board.pieceSquare[king][0], kingInCheck)) {
+        if (board.isSquareAttacked(board.getSquare(king), kingInCheck)) {
 
             board.undoMove();
             movesListStart++;
@@ -558,7 +558,7 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta, bool isPVNod
     }
 
     if (inCheck && bestNodeScore == -INFINITE) {
-        if (board.isSquareAttacked(board.pieceSquare[king][0], kingInCheck)) 
+        if (board.isSquareAttacked(board.getSquare(king), kingInCheck)) 
             alpha = -CHECKMATE + board.ply;
         else alpha = STALEMATE;
     }
@@ -605,8 +605,8 @@ bool SEE(ChessBoard& board, Move move, int materialValue) {
     Bitboard rooks   = board.getPieces(WHITE_ROOK  , BLACK_ROOK  );
     Bitboard queens  = board.getPieces(WHITE_QUEEN , BLACK_QUEEN );
 
-    kingBlockers[WHITE] = board.blockers(board.pieceSquare[WHITE_KING][0], board.getPiecesOnSide(BLACK), slidersPinningEnemyKing[BLACK]);
-    kingBlockers[BLACK] = board.blockers(board.pieceSquare[BLACK_KING][0], board.getPiecesOnSide(WHITE), slidersPinningEnemyKing[WHITE]);
+    kingBlockers[WHITE] = board.blockers(board.getSquare(WHITE_KING), board.getPiecesOnSide(BLACK), slidersPinningEnemyKing[BLACK]);
+    kingBlockers[BLACK] = board.blockers(board.getSquare(BLACK_KING), board.getPiecesOnSide(WHITE), slidersPinningEnemyKing[WHITE]);
     //////////////////////////////////////
 
     Bitboard occupied = board.getOccupiedSquares() ^ squareToBitboard(fromSquare) ^ squareToBitboard(toSquare);
