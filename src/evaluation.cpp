@@ -126,7 +126,7 @@ CombinedScore Evaluation::evaluatePiece(PieceType pt, Color c) {
     /////////////////////////////////////
 
     Piece pieceIndex   = Piece(pt + (6 * c));
-    int numberOfPieces = board.pieceCount[pieceIndex];
+    int numberOfPieces = board.getPieceCount(pieceIndex);
 
     Bitboard attacks, sqBB;
     Square sq;
@@ -219,8 +219,8 @@ CombinedScore Evaluation::evaluatePawns(Color c) {
     Bitboard otherPawns = board.getPieces(c == WHITE ? BLACK_PAWN : WHITE_PAWN);
     /////////////////////////////////////////
 
-    int pawnIndex     = WHITE_PAWN + (6 * c);
-    int numberOfPawns = board.pieceCount[pawnIndex];
+    Piece pawnIndex     = WHITE_PAWN + (6 * c);
+    int numberOfPawns   = board.getPieceCount(pawnIndex);
 
     Square sq;
     Bitboard sqToBB;
@@ -356,10 +356,10 @@ CombinedScore Evaluation::evaluateSpace(Color c) {
 
     ////////////////////////////////
     Piece thesePawns = c == WHITE ? WHITE_PAWN : BLACK_PAWN;
-    int thesePieceCount = c == WHITE ? board.pieceCount[WHITE_PAWN] + board.pieceCount[WHITE_KNIGHT] + board.pieceCount[WHITE_BISHOP] +
-                                       board.pieceCount[WHITE_ROOK] + board.pieceCount[WHITE_QUEEN]
-                                     : board.pieceCount[BLACK_PAWN] + board.pieceCount[BLACK_KNIGHT] + board.pieceCount[BLACK_BISHOP] +
-                                       board.pieceCount[BLACK_ROOK] + board.pieceCount[BLACK_QUEEN];
+    int thesePieceCount = c == WHITE ? board.getPieceCount(WHITE_PAWN) + board.getPieceCount(WHITE_KNIGHT) + board.getPieceCount(WHITE_BISHOP) +
+                                       board.getPieceCount(WHITE_ROOK) + board.getPieceCount(WHITE_QUEEN )
+                                     : board.getPieceCount(BLACK_PAWN) + board.getPieceCount(BLACK_KNIGHT) + board.getPieceCount(BLACK_BISHOP) +
+                                       board.getPieceCount(BLACK_ROOK) + board.getPieceCount(BLACK_QUEEN );
     ////////////////////////////////
 
     if (board.nonPawnMaterial[WHITE] + board.nonPawnMaterial[BLACK] < SPACE_THRESHOLD) return 0;
@@ -414,7 +414,7 @@ CombinedScore Evaluation::evaluateThreats(Color c) {
     //TODO//
     ////////
     Square sq;
-    if (board.pieceCount[c == WHITE ? BLACK_QUEEN : WHITE_QUEEN] == 1) {
+    if (board.getPieceCount(c == WHITE ? BLACK_QUEEN : WHITE_QUEEN) == 1) {
         
         sq = board.pieceSquare[c == WHITE ? BLACK_QUEEN : WHITE_QUEEN][0];
         safeSquares = mobilityArea[c] & ~squaresStronglyProtectedByEnemy;
@@ -532,7 +532,7 @@ CombinedScore Evaluation::evaluateKing(Color c) {
                 + 98  * populationCount(board.blockers(kingSq, board.getPiecesOnSide(~c), temp))
                 + 69  * attackedSquaresAroundEnemyKing[~c] 
                 +       middlegameScore(totalMobility[~c] - totalMobility[c]) 
-                - 873 * (board.pieceCount[c == WHITE ? BLACK_QUEEN : WHITE_QUEEN] == 0) ? 1 : 0  
+                - 873 * (board.getPieceCount(c == WHITE ? BLACK_QUEEN : WHITE_QUEEN) == 0) ? 1 : 0  
                 - 100 * (attacksBy[c][KNIGHT] & attacksBy[c][KING] > 0) ? 1 : 0
                 - 6   * middlegameScore(cs) / 8
                 + 37;
@@ -546,12 +546,12 @@ CombinedScore Evaluation::evaluateImbalance() {
 
     int pieceCount[COLOURS][ALL_PIECE_TYPES] = {
         {
-            board.pieceCount[WHITE_BISHOP] > 1 ? 1 : 0, board.pieceCount[WHITE_PAWN], board.pieceCount[WHITE_KNIGHT],
-            board.pieceCount[WHITE_BISHOP]            , board.pieceCount[WHITE_ROOK], board.pieceCount[WHITE_QUEEN ]
+            board.getPieceCount(WHITE_BISHOP) > 1 ? 1 : 0, board.getPieceCount(WHITE_PAWN), board.getPieceCount(WHITE_KNIGHT),
+            board.getPieceCount(WHITE_BISHOP)            , board.getPieceCount(WHITE_ROOK), board.getPieceCount(WHITE_QUEEN )
         },
         {
-            board.pieceCount[BLACK_BISHOP] > 1 ? 1 : 0, board.pieceCount[BLACK_PAWN], board.pieceCount[BLACK_KNIGHT],
-            board.pieceCount[BLACK_BISHOP]            , board.pieceCount[BLACK_ROOK], board.pieceCount[BLACK_QUEEN ]
+            board.getPieceCount(BLACK_BISHOP) > 1 ? 1 : 0, board.getPieceCount(BLACK_PAWN), board.getPieceCount(BLACK_KNIGHT),
+            board.getPieceCount(BLACK_BISHOP)            , board.getPieceCount(BLACK_ROOK), board.getPieceCount(BLACK_QUEEN )
         }
     };
 
@@ -579,7 +579,7 @@ CombinedScore Evaluation::evaluateInitiative(CombinedScore cs) {
     bool almostUnwinnable = ((passedPawns[WHITE] | passedPawns[BLACK]) == 0) && kingFlanking < 0 && !pawnsOnBothSides;
 
     int initiativeBonus = 9  * populationCount(passedPawns[WHITE] | passedPawns[BLACK])
-                        + 11 * (board.pieceCount[WHITE_PAWN] + board.pieceCount[BLACK_PAWN])
+                        + 11 * (board.getPieceCount(WHITE_PAWN) + board.getPieceCount(BLACK_PAWN))
                         + 9  * (kingFlanking ? 1 : 0)
                         + 12 * (kingInfiltrating ? 1 : 0)
                         + 21 * (pawnsOnBothSides ? 1 : 0)
@@ -652,10 +652,10 @@ int Evaluation::gamePhase() {
     
     int phase = TOTAL_PHASE;
 
-    int numberOfKnights = board.pieceCount[WHITE_KNIGHT] + board.pieceCount[BLACK_KNIGHT];
-    int numberOfBishops = board.pieceCount[WHITE_BISHOP] + board.pieceCount[BLACK_BISHOP];
-    int numberOfRooks   = board.pieceCount[WHITE_ROOK]   + board.pieceCount[BLACK_ROOK]  ; 
-    int numberOfQueens  = board.pieceCount[WHITE_QUEEN]  + board.pieceCount[BLACK_QUEEN] ;
+    int numberOfKnights = board.getPieceCount(WHITE_KNIGHT) + board.getPieceCount(BLACK_KNIGHT);
+    int numberOfBishops = board.getPieceCount(WHITE_BISHOP) + board.getPieceCount(BLACK_BISHOP);
+    int numberOfRooks   = board.getPieceCount(WHITE_ROOK  ) + board.getPieceCount(BLACK_ROOK  ); 
+    int numberOfQueens  = board.getPieceCount(WHITE_QUEEN ) + board.getPieceCount(BLACK_QUEEN );
 
     phase = phase - (KNIGHT_PHASE * numberOfKnights) - (BISHOP_PHASE * numberOfBishops) 
                   - (ROOK_PHASE   * numberOfRooks  ) - (QUEEN_PHASE  * numberOfQueens );

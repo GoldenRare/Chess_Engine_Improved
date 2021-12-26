@@ -210,8 +210,8 @@ Move* generateKnightMoves(const ChessBoard& board, Move* movesList) {
 
     Color sideToPlay = board.sideToPlay;
 
-    int pieceIndex      = WHITE_KNIGHT + (6 * sideToPlay);
-    int numberOfKnights = board.pieceCount[pieceIndex];
+    Piece pieceIndex      = WHITE_KNIGHT + (6 * sideToPlay);
+    int numberOfKnights   = board.getPieceCount(pieceIndex);
 
     Bitboard attacks, captures, quiets;
     Square sq;
@@ -242,8 +242,8 @@ Move* generateBishopMoves(const ChessBoard& board, Move* movesList) {
     Bitboard enemyPieces      = board.getPiecesOnSide(~sideToPlay);
     Bitboard occupied         = board.getOccupiedSquares();
 
-    int pieceIndex      = WHITE_BISHOP + (6 * sideToPlay);
-    int numberOfBishops = board.pieceCount[pieceIndex];
+    Piece pieceIndex      = WHITE_BISHOP + (6 * sideToPlay);
+    int numberOfBishops   = board.getPieceCount(pieceIndex);
 
     Bitboard attacks, captures, quiets;
     Square sq;
@@ -273,8 +273,8 @@ Move* generateRookMoves(const ChessBoard& board, Move* movesList) {
     Bitboard enemyPieces      = board.getPiecesOnSide(~sideToPlay);
     Bitboard occupied         = board.getOccupiedSquares();
 
-    int pieceIndex      = WHITE_ROOK + (6 * sideToPlay);
-    int numberOfRooks   = board.pieceCount[pieceIndex];
+    Piece pieceIndex      = WHITE_ROOK + (6 * sideToPlay);
+    int numberOfRooks     = board.getPieceCount(pieceIndex);
 
     Bitboard attacks, captures, quiets;
     Square sq;
@@ -304,8 +304,8 @@ Move* generateQueenMoves(const ChessBoard& board, Move* movesList) {
     Bitboard enemyPieces      = board.getPiecesOnSide(~sideToPlay);
     Bitboard occupied         = board.getOccupiedSquares();
 
-    int pieceIndex      = WHITE_QUEEN + (6 * sideToPlay);
-    int numberOfQueens  = board.pieceCount[pieceIndex];
+    Piece pieceIndex      = WHITE_QUEEN + (6 * sideToPlay);
+    int numberOfQueens    = board.getPieceCount(pieceIndex);
 
     Bitboard attacks, captures, quiets;
     Square sq;
@@ -572,8 +572,8 @@ Move* generateKnightCaptureMoves(const ChessBoard& board, Move* movesList) {
 
     Color sideToPlay = board.sideToPlay;
 
-    int pieceIndex      = WHITE_KNIGHT + (6 * sideToPlay);
-    int numberOfKnights = board.pieceCount[pieceIndex];
+    Piece pieceIndex      = WHITE_KNIGHT + (6 * sideToPlay);
+    int numberOfKnights   = board.getPieceCount(pieceIndex);
 
     Bitboard captures;
     Square sq;
@@ -596,8 +596,8 @@ Move* generateBishopCaptureMoves(const ChessBoard& board, Move* movesList) {
     Bitboard enemyPieces = board.getPiecesOnSide(~sideToPlay);
     Bitboard occupied    = board.getOccupiedSquares();
 
-    int pieceIndex      = WHITE_BISHOP + (6 * sideToPlay);
-    int numberOfBishops = board.pieceCount[pieceIndex];
+    Piece pieceIndex      = WHITE_BISHOP + (6 * sideToPlay);
+    int numberOfBishops   = board.getPieceCount(pieceIndex);
 
     Bitboard captures;
     Square sq;
@@ -620,8 +620,8 @@ Move* generateRookCaptureMoves(const ChessBoard& board, Move* movesList) {
     Bitboard enemyPieces = board.getPiecesOnSide(~sideToPlay);
     Bitboard occupied    = board.getOccupiedSquares();
 
-    int pieceIndex    = WHITE_ROOK + (6 * sideToPlay);
-    int numberOfRooks = board.pieceCount[pieceIndex];
+    Piece pieceIndex    = WHITE_ROOK + (6 * sideToPlay);
+    int numberOfRooks   = board.getPieceCount(pieceIndex);
 
     Bitboard captures;
     Square sq;
@@ -644,8 +644,8 @@ Move* generateQueenCaptureMoves(const ChessBoard& board, Move* movesList) {
     Bitboard enemyPieces = board.getPiecesOnSide(~sideToPlay);
     Bitboard occupied    = board.getOccupiedSquares();
 
-    int pieceIndex     = WHITE_QUEEN + (6 * sideToPlay);
-    int numberOfQueens = board.pieceCount[pieceIndex];
+    Piece pieceIndex     = WHITE_QUEEN + (6 * sideToPlay);
+    int numberOfQueens   = board.getPieceCount(pieceIndex);
 
     Bitboard captures;
     Square sq;
