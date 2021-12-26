@@ -364,7 +364,7 @@ CombinedScore Evaluation::evaluateSpace(Color c) {
                                        board.getPieceCount(BLACK_ROOK) + board.getPieceCount(BLACK_QUEEN );
     ////////////////////////////////
 
-    if (board.nonPawnMaterial[WHITE] + board.nonPawnMaterial[BLACK] < SPACE_THRESHOLD) return 0;
+    if (board.getNonPawnMaterial() < SPACE_THRESHOLD) return 0;
 
     Bitboard centerSpace = c == WHITE ? CENTER_FILES & (RANK_2_BB | RANK_3_BB | RANK_4_BB)
                                       : CENTER_FILES & (RANK_7_BB | RANK_6_BB | RANK_5_BB);
@@ -585,7 +585,7 @@ CombinedScore Evaluation::evaluateInitiative(CombinedScore cs) {
                         + 9  * (kingFlanking ? 1 : 0)
                         + 12 * (kingInfiltrating ? 1 : 0)
                         + 21 * (pawnsOnBothSides ? 1 : 0)
-                        + 51 * ((board.nonPawnMaterial == 0) ? 1 : 0)
+                        + 51 * ((board.getNonPawnMaterial() == 0) ? 1 : 0)
                         - 43 * (almostUnwinnable ? 1 : 0)
                         - 100;
 

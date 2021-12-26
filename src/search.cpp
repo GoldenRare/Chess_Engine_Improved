@@ -213,7 +213,7 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
         givesCheck = board.givesCheck(*movesListStart);
         captureOrPromotionMove = isCapture(*movesListStart) || isPromotion(*movesListStart);
         ////////////// Pruning Before Making Move //////////////
-        if (!isRootNode && board.nonPawnMaterial[board.getSideToPlay()] > 0 && bestNodeScore > GUARANTEE_CHECKMATED) {
+        if (!isRootNode && board.getNonPawnMaterial(board.getSideToPlay()) > 0 && bestNodeScore > GUARANTEE_CHECKMATED) {
 
             moveCountPruning = legalMoves >= ((5 + depth * depth) / 2 - 1);
             if (!givesCheck && !captureOrPromotionMove) {
