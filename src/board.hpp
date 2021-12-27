@@ -10,7 +10,6 @@ class ChessBoard {
 
     public:
 
-        unsigned int ply;
         unsigned int halfmoves; 
 
         GameState previousGameStates[256];
@@ -45,6 +44,7 @@ class ChessBoard {
         int getNonPawnMaterial() const; // Returns the combined non pawn material of BOTH white and black
         int getNonPawnMaterial(Color c) const; // Returns the non pawn material of a given side
         unsigned int getCastlingRights() const;
+        unsigned int getPly() const;
 
     private:
 
@@ -62,6 +62,7 @@ class ChessBoard {
         unsigned int castlingRights; // Order of the bits: blackQueenside, blackKingside, whiteQueenside, whiteKingside
         int nonPawnMaterial[COLOURS]; // The sum of all piece values for a given side (not including pawns or kings)
         CombinedScore pieceSquareScore; // A score which combines the value of each piece and the square it occupies (score is relative to white)
+        unsigned int ply;
         /*            */
 
         void piecePlacement(Bitboard* init, char piece);
@@ -142,6 +143,10 @@ inline int ChessBoard::getNonPawnMaterial(Color c) const {
 
 inline unsigned int ChessBoard::getCastlingRights() const {
     return castlingRights;
+}
+
+inline unsigned int ChessBoard::getPly() const {
+    return ply;
 }
 
 #endif

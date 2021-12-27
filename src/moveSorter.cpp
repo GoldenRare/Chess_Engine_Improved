@@ -59,8 +59,8 @@ void assignMoveScores(Move* movesListStart, Move* movesListEnd, ChessBoard& boar
                                   + PIECE_VALUE[MIDDLEGAME][piece] - PIECE_VALUE[MIDDLEGAME][WHITE_PAWN];
 
         } 
-        else if (movesListStart->move == killerMoves[board.ply][0]) movesListStart->score = 2; //2 is enough for now to ensure they are done after captures 
-        else if (movesListStart->move == killerMoves[board.ply][1]) movesListStart->score = 1; //1 to make sure it is done after the first killerMove
+        else if (movesListStart->move == killerMoves[board.getPly()][0]) movesListStart->score = 2; //2 is enough for now to ensure they are done after captures 
+        else if (movesListStart->move == killerMoves[board.getPly()][1]) movesListStart->score = 1; //1 to make sure it is done after the first killerMove
               
         movesListStart++;
     }

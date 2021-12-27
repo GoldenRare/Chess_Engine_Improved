@@ -96,7 +96,7 @@ void divide(ChessBoard& board, int depth) {
 
 ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isPVNode, bool isCutNode, int ply) {
 
-    const bool isRootNode = board.ply == ply;
+    const bool isRootNode = board.getPly() == ply;
 
     ////////// Check For Repetition/50-Move rule ////////////
     if (isRepetition(board) || board.halfmoves >= 100) return 0;
@@ -106,13 +106,13 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
         return quiescenceSearch(board, alpha, beta, isPVNode);
 
     //////////////// Mate Distance Pruning //////////////////
-    ExactScore assumeCheckmate = CHECKMATE - board.ply;
+    ExactScore assumeCheckmate = CHECKMATE - board.getPly();
     if (assumeCheckmate < beta) {
         beta = assumeCheckmate;
         if (alpha >= assumeCheckmate) return assumeCheckmate;
     }
 
-    ExactScore assumeCheckmated = -CHECKMATE + board.ply;
+    ExactScore assumeCheckmated = -CHECKMATE + board.getPly();
     if (assumeCheckmated > alpha) {
         alpha = assumeCheckmated;
         if (beta <= assumeCheckmated) return assumeCheckmated;
@@ -131,7 +131,7 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
 
         if (depth <= pe->depth) {
 
-            ExactScore temp = adjustNodeScoreFromTT(pe->nodeScore, board.ply);
+            ExactScore temp = adjustNodeScoreFromTT(pe->nodeScore, board.getPly());
             if (pe->getBound() == EXACT_BOUND) 
                 return temp;
             else if ((pe->getBound() == LOWER_BOUND) && temp > alpha) alpha = temp;
@@ -141,15 +141,15 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
 
         }
         isPVNodeTT = pe->isPVNode() ? pe->isPVNode() : isPVNodeTT;
-        nodeScoreTT = adjustNodeScoreFromTT(pe->nodeScore, board.ply); 
+        nodeScoreTT = adjustNodeScoreFromTT(pe->nodeScore, board.getPly()); 
         hashMove = (pe->move == NO_MOVE) ? 0 : pe->move;
     }
     savedHashMove.move = hashMove;
     //////////////////////////////////////////////////////////
 
     /////////////// Erase Killers of Next Ply ////////////////
-    killerMoves[board.ply + 1][0] = 0;
-    killerMoves[board.ply + 1][1] = 0;
+    killerMoves[board.getPly() + 1][0] = 0;
+    killerMoves[board.getPly() + 1][1] = 0;
     //////////////////////////////////////////////////////////
 
     Color kingInCheck = board.getSideToPlay();
@@ -290,9 +290,9 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
                     ///////////// Save Killers /////////////////
                     if (isQuietMove(*movesListStart)) {
                         //Favour more recent beta cutoffs
-                        if (movesListStart->move != killerMoves[board.ply][0]) {
-                            killerMoves[board.ply][1] = killerMoves[board.ply][0];
-                            killerMoves[board.ply][0] = movesListStart->move;
+                        if (movesListStart->move != killerMoves[board.getPly()][0]) {
+                            killerMoves[board.getPly()][1] = killerMoves[board.getPly()][0];
+                            killerMoves[board.getPly()][0] = movesListStart->move;
                         }
                     }
                     ////////////////////////////////////////////
@@ -308,14 +308,14 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
     //////////////// Checkmate or Stalemate /////////////////
     if(legalMoves == 0) {
         if (board.isSquareAttacked(board.getSquare(king), kingInCheck)) 
-            bestNodeScore = -CHECKMATE + board.ply;
+            bestNodeScore = -CHECKMATE + board.getPly();
         else bestNodeScore = STALEMATE;
     }
     ////////////////////////////////////////////////////////
 
     pe->savePositionEvaluation(board.getPositionKey(), bestMove, depth, isPVNodeTT, 
                                bestNodeScore >= beta ? LOWER_BOUND : isPVNode && (bestMove != NO_MOVE) ? EXACT_BOUND : UPPER_BOUND, 
-                               staticEvaluation, adjustNodeScoreToTT(bestNodeScore, board.ply));
+                               staticEvaluation, adjustNodeScoreToTT(bestNodeScore, board.getPly()));
     return bestNodeScore;
 }
 
@@ -344,7 +344,7 @@ void iterativeDeepening(ChessBoard& board, int maxDepth) {
             // In the event of a fail high, we search at a shallower depth with a greater window since move ordering 
             // will have been messed up due to the fail high. 
             int adjustedDepth = std::max(1, depth - failedHighCount); 
-            evaluation = alphaBeta(board, alpha, beta, adjustedDepth, true, false, board.ply);
+            evaluation = alphaBeta(board, alpha, beta, adjustedDepth, true, false, board.getPly());
 
             // Fails Low
             if (evaluation <= alpha) {
@@ -391,8 +391,8 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta, bool isPVNod
     Piece king        = (kingInCheck == WHITE) ? WHITE_KING : BLACK_KING;
 
     /////////////// Erase Killers of Next Ply ////////////////
-    killerMoves[board.ply + 1][0] = 0;
-    killerMoves[board.ply + 1][1] = 0;
+    killerMoves[board.getPly() + 1][0] = 0;
+    killerMoves[board.getPly() + 1][1] = 0;
     //////////////////////////////////////////////////////////
 
     Move movesList[256];
@@ -416,7 +416,7 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta, bool isPVNod
 
         if (0 <= pe->depth && !isPVNode) {
 
-            ExactScore temp = adjustNodeScoreFromTT(pe->nodeScore, board.ply);
+            ExactScore temp = adjustNodeScoreFromTT(pe->nodeScore, board.getPly());
             if (pe->getBound() == EXACT_BOUND) 
                 return temp;
             else if ((pe->getBound() == LOWER_BOUND) && temp > alpha) alpha = temp;
@@ -426,7 +426,7 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta, bool isPVNod
 
         }
         isPVNodeTT = pe->isPVNode();
-        nodeScoreTT = adjustNodeScoreFromTT(pe->nodeScore, board.ply); 
+        nodeScoreTT = adjustNodeScoreFromTT(pe->nodeScore, board.getPly()); 
         hashMove = (pe->move == NO_MOVE) ? 0 : pe->move;
     }
     //////////////////////////////////////////////////////////
@@ -461,7 +461,7 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta, bool isPVNod
 
         if (bestNodeScore >= beta) {
 
-            pe->savePositionEvaluation(board.getPositionKey(), NO_MOVE, 0, isPVNodeTT, LOWER_BOUND, staticEvaluation, adjustNodeScoreToTT(bestNodeScore, board.ply));
+            pe->savePositionEvaluation(board.getPositionKey(), NO_MOVE, 0, isPVNodeTT, LOWER_BOUND, staticEvaluation, adjustNodeScoreToTT(bestNodeScore, board.getPly()));
             return bestNodeScore;
         }
 
@@ -543,9 +543,9 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta, bool isPVNod
                     ///////////// Save Killers /////////////////
                     if (isQuietMove(*movesListStart)) {
                         //Favour more recent beta cutoffs
-                        if (movesListStart->move != killerMoves[board.ply][0]) {
-                            killerMoves[board.ply][1] = killerMoves[board.ply][0];
-                            killerMoves[board.ply][0] = movesListStart->move;
+                        if (movesListStart->move != killerMoves[board.getPly()][0]) {
+                            killerMoves[board.getPly()][1] = killerMoves[board.getPly()][0];
+                            killerMoves[board.getPly()][0] = movesListStart->move;
                         }
                     }
                     ////////////////////////////////////////////
@@ -559,13 +559,13 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta, bool isPVNod
 
     if (inCheck && bestNodeScore == -INFINITE) {
         if (board.isSquareAttacked(board.getSquare(king), kingInCheck)) 
-            alpha = -CHECKMATE + board.ply;
+            alpha = -CHECKMATE + board.getPly();
         else alpha = STALEMATE;
     }
 
     pe->savePositionEvaluation(board.getPositionKey(), bestMove, 0, isPVNodeTT, 
                                bestNodeScore >= beta ? LOWER_BOUND : isPVNode && (bestNodeScore > oldAlpha) ? EXACT_BOUND : UPPER_BOUND, 
-                               staticEvaluation, adjustNodeScoreToTT(bestNodeScore, board.ply));
+                               staticEvaluation, adjustNodeScoreToTT(bestNodeScore, board.getPly()));
     return bestNodeScore;
 }
 
