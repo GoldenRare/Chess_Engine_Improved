@@ -99,7 +99,7 @@ ExactScore alphaBeta(ChessBoard& board, int alpha, int beta, int depth, bool isP
     const bool isRootNode = board.getPly() == ply;
 
     ////////// Check For Repetition/50-Move rule ////////////
-    if (isRepetition(board) || board.halfmoves >= 100) return 0;
+    if (isRepetition(board) || board.getHalfmoves() >= 100) return 0;
     /////////////////////////////////////////////////////////
     
     if (depth <= 0) 
@@ -402,7 +402,7 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta, bool isPVNod
 
     if (isPVNode) oldAlpha = alpha;
     ////////// Check For Repetition/50-Move rule ////////////
-    if (isRepetition(board) || board.halfmoves >= 100) return 0;
+    if (isRepetition(board) || board.getHalfmoves() >= 100) return 0;
     /////////////////////////////////////////////////////////
 
     ///////////////// Transposition Table ///////////////////
@@ -571,10 +571,10 @@ ExactScore quiescenceSearch(ChessBoard& board, int alpha, int beta, bool isPVNod
 
 bool isRepetition(ChessBoard& board) {
 
-    if (board.halfmoves < 4) return false;
+    if (board.getHalfmoves() < 4) return false;
 
     //int currentPosition = board.previousGameStatesCount - 1;
-    int howFarBack = board.previousGameStatesCount - board.halfmoves;
+    int howFarBack = board.previousGameStatesCount - board.getHalfmoves();
     for (int i = board.previousGameStatesCount - 4; (i >= 0) && (i >= howFarBack); i -= 2) 
         if (board.getPositionKey() == board.previousGameStates[i].key) return true;
 
