@@ -10,7 +10,6 @@ class ChessBoard {
 
     public:
 
-        GameState previousGameStates[256];
         int previousGameStatesCount;
 
         ChessBoard();
@@ -38,6 +37,7 @@ class ChessBoard {
         Square getEnPassant() const;
         Square getSquare(Piece p) const; // Returns the square of the FIRST piece in the pieceList (used when you know only one piece can exist, for example, there can only be one king)
         const Square* getSquares(Piece p) const; // Return ALL the squares for the piece in the pieceList (indexing should be paired with pieceCount to know when to stop)
+        const GameState* getPreviousGameStates() const;
         int getPieceCount(Piece p) const; 
         int getNonPawnMaterial() const; // Returns the combined non pawn material of BOTH white and black
         int getNonPawnMaterial(Color c) const; // Returns the non pawn material of a given side
@@ -63,6 +63,7 @@ class ChessBoard {
         CombinedScore pieceSquareScore; // A score which combines the value of each piece and the square it occupies (score is relative to white)
         unsigned int ply;
         unsigned int halfmoves; 
+        GameState previousGameStates[256];
         /*            */
 
         void piecePlacement(Bitboard* init, char piece);
@@ -127,6 +128,10 @@ inline Square ChessBoard::getSquare(Piece p) const {
 
 inline const Square* ChessBoard::getSquares(Piece p) const {
     return pieceSquare[p];
+}
+
+inline const GameState* ChessBoard::getPreviousGameStates() const {
+    return previousGameStates;
 }
 
 inline int ChessBoard::getPieceCount(Piece p) const {

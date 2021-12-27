@@ -576,7 +576,7 @@ bool isRepetition(ChessBoard& board) {
     //int currentPosition = board.previousGameStatesCount - 1;
     int howFarBack = board.previousGameStatesCount - board.getHalfmoves();
     for (int i = board.previousGameStatesCount - 4; (i >= 0) && (i >= howFarBack); i -= 2) 
-        if (board.getPositionKey() == board.previousGameStates[i].key) return true;
+        if (board.getPositionKey() == board.getPreviousGameStates()[i].key) return true;
 
     return false;
 }
