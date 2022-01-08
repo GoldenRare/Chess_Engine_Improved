@@ -815,19 +815,6 @@ bool isValidSquare(Square s) {
     return result;
 }
 
-int populationCount(Bitboard b) {
-    
-    int count = 0;
-
-    while (b > 0) {
-        count++;
-        b &= (b - 1);
-    }
-
-    return count;
-    
-}
-
 void initBoard() {
 
     initChebyshevDistance();

@@ -82,7 +82,6 @@ void initBoard();
 
 void printBitboard(Bitboard b);
 bool isValidSquare(Square s);
-int populationCount(Bitboard b);
 
 inline PositionKey ChessBoard::getPositionKey() const {
     return positionKey;

@@ -302,6 +302,22 @@ inline int keepInRange(int low, int high, int value) {
     return value < low ? low : value > high ? high : value;
 }
 
+inline int populationCount(Bitboard b) {
+    // Use builtin function if compiler is GCC
+    #ifdef __GNUC__
+    return __builtin_popcountll(b);
+    // Otherwise use this function
+    #else
+    // TODO: Change implementation to use a lookup table
+    int count = 0;
+    while (b > 0) {
+        count++;
+        b &= (b - 1);
+    }
+    return count;
+    #endif
+}
+
 inline Color operator~(Color c) {
     Color result = (c == WHITE) ? BLACK : WHITE;
     return result;

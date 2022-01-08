@@ -2,6 +2,7 @@
 #include "moves.hpp"
 #include "board.hpp"
 #include "randomNumber.hpp"
+#include "utility.hpp"
 
 Magic bishopMagics[SQUARES];
 Magic rookMagics[SQUARES];
