@@ -14,28 +14,29 @@ ChessBoard::ChessBoard(std::string fen) {
     parseFEN(fen);
 }
 
-//Works by putting a super-piece on the sq, and seeing if the correct opposite color pieces resides on
-//the attack squares of the super-piece
-bool ChessBoard::isSquareAttacked(Square sq, Color attacked) const{
+// Works by putting a super-piece on the sq, and seeing if the correct opposite color pieces resides on
+// the attack squares of the super-piece
+bool ChessBoard::isSquareAttacked(Square sq, Color attacked) const {
 
-    if (pawnAttacks[attacked][sq] & pieces[BLACK_PAWN   - (6 * attacked)]) return true;
-    if (knightAttacks[sq]         & pieces[BLACK_KNIGHT - (6 * attacked)]) return true;
-    if (kingAttacks[sq]           & pieces[BLACK_KING   - (6 * attacked)]) return true;
+    Color attacker = ~attacked;
+    if (pawnAttacks[attacked][sq] & pieces[pieceTypeToPiece(PAWN  , attacker)]) return true;
+    if (knightAttacks        [sq] & pieces[pieceTypeToPiece(KNIGHT, attacker)]) return true;
+    if (kingAttacks          [sq] & pieces[pieceTypeToPiece(KING  , attacker)]) return true;
 
-    if (bishopAttacks(occupiedSquares, sq) & (pieces[BLACK_BISHOP - (6 * attacked)] | pieces[BLACK_QUEEN   - (6 * attacked)])) return true;
-    if (rookAttacks(occupiedSquares, sq)   & (pieces[BLACK_ROOK   - (6 * attacked)] | pieces[BLACK_QUEEN   - (6 * attacked)])) return true;
+    if (bishopAttacks(occupiedSquares, sq) & (pieces[pieceTypeToPiece(BISHOP, attacker)] | pieces[pieceTypeToPiece(QUEEN, attacker)])) return true;
+    if (rookAttacks  (occupiedSquares, sq) & (pieces[pieceTypeToPiece(ROOK  , attacker)] | pieces[pieceTypeToPiece(QUEEN, attacker)])) return true;
 
     return false;
 }
 
 Bitboard ChessBoard::attackersToSquare(Square sq, Bitboard occupied) {
 
-    return pawnAttacks[WHITE][sq] &  pieces[BLACK_PAWN  ]
-         | pawnAttacks[BLACK][sq] &  pieces[WHITE_PAWN  ]
-         | knightAttacks     [sq] & (pieces[WHITE_KNIGHT] | pieces[BLACK_KNIGHT]) 
-         | kingAttacks       [sq] & (pieces[WHITE_KING  ] | pieces[BLACK_KING  ]) 
-         | bishopAttacks(occupied, sq) & (pieces[WHITE_BISHOP] | pieces[BLACK_BISHOP] | pieces[WHITE_QUEEN] | pieces[BLACK_QUEEN])
-         | rookAttacks  (occupied, sq) & (pieces[WHITE_ROOK  ] | pieces[BLACK_ROOK  ] | pieces[WHITE_QUEEN] | pieces[BLACK_QUEEN]);
+    return (pawnAttacks[WHITE][sq] &  pieces[BLACK_PAWN  ])
+         | (pawnAttacks[BLACK][sq] &  pieces[WHITE_PAWN  ])
+         | (knightAttacks     [sq] & (pieces[WHITE_KNIGHT] | pieces[BLACK_KNIGHT])) 
+         | (kingAttacks       [sq] & (pieces[WHITE_KING  ] | pieces[BLACK_KING  ])) 
+         | (bishopAttacks(occupied, sq) & (pieces[WHITE_BISHOP] | pieces[BLACK_BISHOP] | pieces[WHITE_QUEEN] | pieces[BLACK_QUEEN]))
+         | (rookAttacks  (occupied, sq) & (pieces[WHITE_ROOK  ] | pieces[BLACK_ROOK  ] | pieces[WHITE_QUEEN] | pieces[BLACK_QUEEN]));
 
 }
 
@@ -499,8 +500,8 @@ Bitboard ChessBoard::blockers(Square sq, Bitboard sliders, Bitboard& pinners) co
     pinners = 0;
 
     Bitboard bishops  = pieces[WHITE_BISHOP] | pieces[BLACK_BISHOP];
-    Bitboard rooks    = pieces[WHITE_ROOK]   | pieces[BLACK_ROOK];
-    Bitboard queens   = pieces[WHITE_QUEEN]  | pieces[BLACK_QUEEN];
+    Bitboard rooks    = pieces[WHITE_ROOK  ] | pieces[BLACK_ROOK  ];
+    Bitboard queens   = pieces[WHITE_QUEEN ] | pieces[BLACK_QUEEN ];
 
     Bitboard occupied;
     Bitboard occupiedInBetween;
@@ -509,16 +510,16 @@ Bitboard ChessBoard::blockers(Square sq, Bitboard sliders, Bitboard& pinners) co
     sliders  = ((bishopAttacks(0, sq) & (bishops | queens)) | (rookAttacks(0, sq) & (rooks | queens))) & sliders;
     occupied = occupiedSquares ^ sliders;
 
-    while (sliders > 0) {
+    while (sliders) {
 
         sliderSq = squareOfLS1B(&sliders);
         occupiedInBetween = inBetween[sq][sliderSq] & occupied;
 
         // sq is blocked only if there is exactly 1 piece in between the attacking sliding piece and the sq
-        if ((occupiedInBetween > 0) && (occupiedInBetween & (occupiedInBetween - 1) == 0)) {
+        if (occupiedInBetween && !hasMoreThanOneBit(occupiedInBetween)) {
             
             blockers |= occupiedInBetween;
-            if ((occupiedInBetween & piecesOnSide[colorOfPiece(pieceBoard[sq])]) > 0) 
+            if (occupiedInBetween & piecesOnSide[colorOfPiece(pieceBoard[sq])]) 
                 pinners |= squareToBitboard(sliderSq);
         }
     }

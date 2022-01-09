@@ -298,6 +298,10 @@ inline Bitboard ranksInFront(Color c, Square s) {
                                        : ENTIRE_BOARD >> 8 * offset;
 }
 
+inline Piece pieceTypeToPiece(PieceType pt, Color c) {
+    return Piece(pt + 6 * c);
+}
+
 inline int keepInRange(int low, int high, int value) {
     return value < low ? low : value > high ? high : value;
 }
