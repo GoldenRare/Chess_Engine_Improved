@@ -166,11 +166,10 @@ CombinedScore Evaluation::evaluatePiece(PieceType pt, Color c) {
 
         if ((pt == KNIGHT) || (pt == BISHOP)) {
             
-            
-            Bitboard outposts = attacksBy[c][PAWN] & (c == WHITE) ? whiteOutpostRanks & (~pawnAttackSpans(board.getPieces(BLACK_PAWN), BLACK))
-                                                                  : blackOutpostRanks & (~pawnAttackSpans(board.getPieces(WHITE_PAWN), WHITE));
+            Bitboard outposts = attacksBy[c][PAWN] & (c == WHITE ? whiteOutpostRanks & ~pawnAttackSpans(board.getPieces(BLACK_PAWN), BLACK)
+                                                                 : blackOutpostRanks & ~pawnAttackSpans(board.getPieces(WHITE_PAWN), WHITE));
 
-            if ((outposts & sqBB) > 0) cs += (OUTPOST_BONUS * (pt == KNIGHT) ? 2 : 1);
+            if (outposts & sqBB) cs += OUTPOST_BONUS * (pt == KNIGHT ? 2 : 1);
             else if ((pt == KNIGHT) && ((outposts & attacks & (~board.getPiecesOnSide(c))) > 0)) cs += REACHABLE_OUTPOST_BONUS;
 
             //Uses pawnsAbleToPush as a hack for detecting minor pieces behind pawns
