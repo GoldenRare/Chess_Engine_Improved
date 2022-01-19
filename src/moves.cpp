@@ -58,7 +58,7 @@ void makeMagics(Magic magics[], const Direction directions[]) {
         } while (powerSet > 0);
 
         Bitboard trialAndError[4096] = {};
-        int trial = 0;
+        unsigned int trial = 0;
         for (int j = 0; j < size; j++) {
 
             if (j == 0) {

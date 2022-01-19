@@ -351,6 +351,16 @@ inline Piece& operator++(Piece& piece) {
     return piece = Piece((int)piece + 1);
 }
 
+inline PieceType operator++(PieceType& pt, int) {
+    PieceType temp = pt;
+    pt = PieceType((int)pt + 1);
+    return temp;
+}
+
+inline PieceType& operator++(PieceType& pt) {
+    return pt = PieceType((int)pt + 1);
+}
+
 inline File operator++(File& file, int) {
     File temp = file;
     file = File((int)file + 1);
