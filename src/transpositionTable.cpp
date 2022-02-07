@@ -3,8 +3,6 @@
 #include "utility.hpp"
 #include "evaluation.hpp"
 
-#include <iostream>
-
 TranspositionTable TT;
 
 TranspositionTable::TranspositionTable() {
@@ -12,7 +10,7 @@ TranspositionTable::TranspositionTable() {
     numberOfBuckets = 32768;
     table = new Bucket[numberOfBuckets]; // Default size of transposition table is 1MB (32 Bytes per bucket * 32768 buckets == 1MB)
     age = 0; 
-    std::cout << numberOfBuckets << std::endl;
+
 }
 
 TranspositionTable::~TranspositionTable() {
