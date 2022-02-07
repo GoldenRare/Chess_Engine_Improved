@@ -3,30 +3,51 @@
 #include "utility.hpp"
 #include "evaluation.hpp"
 
+#include <iostream>
+
 TranspositionTable TT;
+
+TranspositionTable::TranspositionTable() {
+
+    numberOfBuckets = 32768;
+    table = new Bucket[numberOfBuckets]; // Default size of transposition table is 1MB (32 Bytes per bucket * 32768 buckets == 1MB)
+    age = 0; 
+    std::cout << numberOfBuckets << std::endl;
+}
 
 TranspositionTable::~TranspositionTable() {
     delete[] table; 
 }
 
 void TranspositionTable::updateAge() {
-    age += 8; //Will eventually overflow causing it to be cyclic
+    age += 8; // Will eventually overflow causing it to be cyclic
 }
 
 uint8_t TranspositionTable::getAge() {
     return age;
 }
 
-//Returns the first PositionEvaluation for that bucket
-PositionEvaluation* TranspositionTable::indexBucket(PositionKey key) {
-    return &table[key >> 16 & NUMBER_OF_BUCKETS - 1].pe[0];
+uint64_t TranspositionTable::setSize(uint64_t MB) {
+
+    numberOfBuckets = MB * (1024 * 1024 / 32);
+    numberOfBuckets = squareToBitboard(squareOfMS1B(numberOfBuckets));
+
+    delete[] table;
+    table = new Bucket[numberOfBuckets];
+    
+    return numberOfBuckets;
 }
 
-//Returns either a PositionEvaluation containing the key or one to replace
+// Returns the first PositionEvaluation for that bucket
+PositionEvaluation* TranspositionTable::indexBucket(PositionKey key) {
+    return &table[key & (numberOfBuckets - 1)].pe[0];
+}
+
+// Returns either a PositionEvaluation containing the key or one to replace
 PositionEvaluation* TranspositionTable::probeTT(PositionKey key, bool& hasEvaluation) {
 
     PositionEvaluation* pePtr = indexBucket(key);
-    uint16_t keyIndex = key & 0xFFFF; //PositionEvaluations store first 16 bits of a 64 bit PositionKey
+    uint16_t keyIndex = key >> 48; // PositionEvaluations store last 16 bits of a 64 bit PositionKey
 
     for (int i = 0; i < BUCKET_SIZE; i++) 
         //Since we do not use the entire 64 bits of key for indexing the bucket, this may sometimes lead to collisions. 
@@ -37,7 +58,7 @@ PositionEvaluation* TranspositionTable::probeTT(PositionKey key, bool& hasEvalua
         if (pePtr[i].positionKey == keyIndex || !pePtr[i].positionKey) {
 
             hasEvaluation = bool(pePtr[i].positionKey);
-            pePtr[i].ageBounds = age | pePtr[i].ageBounds & 0x7; //If probed then update age since this old position is still relevant to the game
+            pePtr[i].ageBounds = age | (pePtr[i].ageBounds & 0x7); //If probed then update age since this old position is still relevant to the game
             return &pePtr[i];
 
         }
@@ -50,8 +71,8 @@ PositionEvaluation* TranspositionTable::probeTT(PositionKey key, bool& hasEvalua
     PositionEvaluation* replace = pePtr;
     for (int i = 1; i < BUCKET_SIZE; i++) 
         //Favour PositionEvaluations done at a higher depth but penalize entries for being old
-        if (replace->depth - (263 + age - replace->ageBounds & 0xF8) >
-            pePtr[i].depth - (263 + age - pePtr[i].ageBounds & 0xF8))
+        if (replace->depth - ((263 + age - replace->ageBounds) & 0xF8) >
+            pePtr[i].depth - ((263 + age - pePtr[i].ageBounds) & 0xF8))
             replace = &pePtr[i];
     
 
@@ -60,7 +81,7 @@ PositionEvaluation* TranspositionTable::probeTT(PositionKey key, bool& hasEvalua
 
 void PositionEvaluation::savePositionEvaluation(PositionKey pk, uint16_t m, uint8_t d, bool pv, uint8_t b, int16_t se, int16_t ns) {
 
-    uint16_t keyIndex = pk & 0xFFFF;
+    uint16_t keyIndex = pk >> 48;
 
     //If we have a move simply overwrite, otherwise if the keys aren't the same (due to our replacement scheme) then overwrite the old move
     //for the old position (if this case happens we will be simply erasing the old move to 0). 

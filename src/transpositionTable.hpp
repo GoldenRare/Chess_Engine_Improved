@@ -6,7 +6,6 @@
 #include "evaluation.hpp"
 
 constexpr int BUCKET_SIZE = 3;
-constexpr uint64_t NUMBER_OF_BUCKETS = 0x10000000ULL; //0x2000000ULL; - 1 GB
 
 // One PositionEvaluation takes 10 bytes: (16 + 16 + 8 + 8 + 16 + 16) / 8 == 10 Bytes
 struct PositionEvaluation {
@@ -38,16 +37,21 @@ class TranspositionTable {
 
     public:
 
+        TranspositionTable();
         ~TranspositionTable();
-        PositionEvaluation* indexBucket(PositionKey key);
         PositionEvaluation* probeTT(PositionKey key, bool& hasEvaluation);
         void updateAge();
         uint8_t getAge();
+        uint64_t setSize(uint64_t MB);
 
     private:
 
-        Bucket* table = new Bucket[NUMBER_OF_BUCKETS]; //Size of transposition table is 1GB (32 Bytes per bucket * 33554432 buckets == 1GB)
-        uint8_t age = 0; //To determine how far into the GAME we are (not how deep into the tree)
+        uint64_t numberOfBuckets; 
+        Bucket* table;
+        uint8_t age; // To determine how far into the game we are (not how deep into the tree)
+
+        PositionEvaluation* indexBucket(PositionKey key);
+
 };
 
 //Returns an adjusted score in the case of having checkmate or being checkmated

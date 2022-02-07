@@ -1,17 +1,41 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <cstdint>
 #include "uci.hpp"
 #include "utility.hpp"
 #include "board.hpp"
 #include "moveGeneration.hpp"
 #include "search.hpp"
+#include "transpositionTable.hpp"
 
 void uciCommand() {
 
     std::cout << "id name GoldenRareBOT" << std::endl;
-    std::cout << "id author Deshawn Mohan-Smith" << std::endl;
-    std::cout << "uciok" << std::endl;
+    std::cout << "id author Deshawn Mohan-Smith\n" << std::endl;
+    std::cout << "option name Hash type spin default " << MIN_MB << " min " << MIN_MB << " max " << MAX_MB << std::endl;
+    std::cout << "\nuciok" << std::endl;
+
+}
+
+void setOptionCommand(std::istringstream& iss) {
+
+    std::string token; 
+    iss >> token; // This token should always be "name", therefore we can skip it
+    
+    iss >> token;
+    if (token == "Hash") {
+        uint64_t value;
+        iss >> token; // This token should always be "value"
+        iss >> value;
+
+        if (value >= MIN_MB && value <= MAX_MB)
+            std::cout << "Allocating " << TT.setSize(value) << " * 32 / 1024 / 1024 MB (not computed due to potential overflow reasons)" << std::endl;
+        else 
+            std::cout << "Requesting too little or too much memory!" << std::endl;
+
+    } else
+        std::cout << "Invalid option name!" << std::endl;
 
 }
 
@@ -102,11 +126,12 @@ void commandsLoop() {
 
         while (iss >> token) {
 
-            if      (token == "uci"     ) uciCommand();
-            else if (token == "isready" ) isReadyCommand();
-            else if (token == "position") positionCommand(iss, board);
-            else if (token == "go"      ) goCommand(board);
-            else if (token == "quit"    ) break;
+            if      (token == "uci"      ) uciCommand();
+            else if (token == "setoption") setOptionCommand(iss);
+            else if (token == "isready"  ) isReadyCommand();
+            else if (token == "position" ) positionCommand(iss, board);
+            else if (token == "go"       ) goCommand(board);
+            else if (token == "quit"     ) break;
         }
     }
 }
