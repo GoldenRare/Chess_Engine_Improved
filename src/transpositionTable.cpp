@@ -2,13 +2,14 @@
 #include "transpositionTable.hpp"
 #include "utility.hpp"
 #include "evaluation.hpp"
+#include <iostream>
 
 TranspositionTable TT;
 
 TranspositionTable::TranspositionTable() {
 
     numberOfBuckets = 32768;
-    table = new Bucket[numberOfBuckets]; // Default size of transposition table is 1MB (32 Bytes per bucket * 32768 buckets == 1MB)
+    table = new Bucket[numberOfBuckets](); // Default size of transposition table is 1MB (32 Bytes per bucket * 32768 buckets == 1MB)
     age = 0; 
 
 }
@@ -31,8 +32,8 @@ uint64_t TranspositionTable::setSize(uint64_t MB) {
     numberOfBuckets = squareToBitboard(squareOfMS1B(numberOfBuckets));
 
     delete[] table;
-    table = new Bucket[numberOfBuckets];
-    
+    table = new Bucket[numberOfBuckets]();
+
     return numberOfBuckets;
 }
 

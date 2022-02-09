@@ -9,11 +9,11 @@ constexpr int BUCKET_SIZE = 3;
 
 // One PositionEvaluation takes 10 bytes: (16 + 16 + 8 + 8 + 16 + 16) / 8 == 10 Bytes
 struct PositionEvaluation {
-    PositionEvaluation() : positionKey(0) {}
+
     uint16_t positionKey;
     uint16_t move;
     uint8_t depth;
-    uint8_t ageBounds; //Bits 8-4 == relative age, Bit 3 == is PV Node, Bits 2-1 == Bounds
+    uint8_t ageBounds; // Bits 8-4 == relative age, Bit 3 == is PV Node, Bits 2-1 == Bounds
     int16_t staticEvaluation;
     int16_t nodeScore;
 
@@ -29,7 +29,7 @@ struct PositionEvaluation {
 struct Bucket {
 
     PositionEvaluation pe[BUCKET_SIZE];
-    char filling[2];
+    char padding[2];
 
 }; 
 
